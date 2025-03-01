@@ -52,7 +52,7 @@ export default function ProductDetail() {
 
   return (
     <View style={styles.container}>
-      <Navbar user={{ name: "Như Ý", avatar: "https://example.com/avatar.jpg" }} />
+      <Navbar  />
       <Image source={{ uri: product.image }} style={styles.productImage} />
       
       <View style={styles.contentContainer}>

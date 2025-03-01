@@ -13,7 +13,7 @@ export default function CartScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Navbar user={{ name: "Như Ý" }} />
+      <Navbar />
       <ScrollView contentContainerStyle={styles.cartList}>
         {cartItems.length > 0 ? (
           cartItems.map((item) => (

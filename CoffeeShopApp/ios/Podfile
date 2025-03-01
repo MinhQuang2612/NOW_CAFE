@@ -12,6 +12,8 @@ platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'
 # Add the use_modular_headers! line to ensure Swift pods are properly integrated
 use_modular_headers!
 use_frameworks! :linkage => :static
+pod 'Firebase/Auth'
+pod 'GoogleSignIn'
 install! 'cocoapods',
   :deterministic_uuids => false
 
