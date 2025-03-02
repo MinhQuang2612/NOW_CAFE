@@ -156,11 +156,11 @@ const CartSchema = new mongoose.Schema({
 const Cart = mongoose.model("Cart", CartSchema, "Cart");
 
 // Route để lấy giỏ hàng theo userId từ collection Cart
-app.get("/api/cart/:UserId", async (req, res) => {
+app.get("/api/cart/:userId", async (req, res) => {
   try {
-    console.log("🔍 Gọi API với userId:", req.params.UserId);
+    console.log("🔍 Gọi API với userId:", req.params.userId);
 
-    const cart = await Cart.findOne({ "User.User_id": req.params.UserId });
+    const cart = await Cart.findOne({ "User.User_id": req.params.userId });
 
     console.log("📌 Kết quả từ MongoDB:", cart);
 
@@ -176,12 +176,12 @@ app.get("/api/cart/:UserId", async (req, res) => {
 });
 
 // Route để cập nhật giỏ hàng
-app.put("/api/cart/:UserId", async (req, res) => {
+app.put("/api/cart/:userId", async (req, res) => {
   try {
-    console.log("🔍 Cập nhật giỏ hàng với userId:", req.params.UserId);
+    console.log("🔍 Cập nhật giỏ hàng với userId:", req.params.userId);
     console.log("Dữ liệu nhận được:", req.body);
     const updatedCart = await Cart.findOneAndUpdate(
-      { "User.User_id": req.params.UserId },
+      { "User.User_id": req.params.userId },
       { $set: req.body },
       { new: true, runValidators: true }
     );
