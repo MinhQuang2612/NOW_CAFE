@@ -123,13 +123,13 @@ export default function CartScreen({ navigation }) {
           {/* Thay doi so luong */}
           <View style={styles.quantityContainer}>
             <TouchableOpacity style={styles.quantityButton} 
-              onPress={() => handleDecreaseQuantity(item)}
+              onPress={() => handleDecreaseQuantity({item})}
             >
               <Text style={styles.textQuantityButton}>-</Text>
             </TouchableOpacity>
             <Text>{item.quantity} </Text>
             <TouchableOpacity style={styles.quantityButton}
-              onPress={() => handleIncreaseQuantity(item)}
+              onPress={() => handleIncreaseQuantity({item})}
             >
               <Text style={styles.quantity}>+</Text>
             </TouchableOpacity>
@@ -158,9 +158,9 @@ export default function CartScreen({ navigation }) {
 
  
 
-  const handleIncreaseQuantity = (id) => {
+  const handleIncreaseQuantity = ({item}) => {
     // Thay đổi số lượng trong cartItems
-    dispatch(addToCart({ product: id, quantity: 1 }));
+    dispatch(addToCart({ product: item, quantity: 1 }));
     // Update database 
    
   };

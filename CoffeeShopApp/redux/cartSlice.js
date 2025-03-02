@@ -60,6 +60,7 @@ const cartSlice = createSlice({
 
     addToCart: (state, action) => {
       const { product, quantity } = action.payload;
+      console.log("🛒 Add to Cart:", product, quantity);
       const existingItem = state.cartItems.find((item) => item.id === product.sanpham_id);
 
       if (existingItem) {
