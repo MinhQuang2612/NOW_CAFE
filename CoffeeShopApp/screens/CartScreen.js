@@ -70,10 +70,10 @@ export default function CartScreen({ navigation }) {
   }, [dataCheck]);
   console.log("🛒 Data Check:", dataCheck);
 
-  useEffect(() => {
-    dispatch(updateCartItems({ userId: userIdDefault, cartItems: cartItems }));
-  }
-  , [cartItems]);
+  // useEffect(() => {
+  //   dispatch(updateCartItems({ userId: userIdDefault, cartItems: cartItems }));
+  // }
+  // , [cartItems]);
 
   /*
     Trong data chưa có
