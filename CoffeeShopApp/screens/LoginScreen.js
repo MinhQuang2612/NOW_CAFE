@@ -59,6 +59,7 @@ const LoginScreen = ({ navigation }) => {
  
   GoogleSignin.configure({
     webClientId: "843660951518-c702nqvtd7q27j3aa18ddi3npjrcboq3.apps.googleusercontent.com", // Thay thế bằng Web Client ID từ Firebase Console
+    iosClientId: "843660951518-t66vdll10vmboev9j3tkfbnknv7coi2b.apps.googleusercontent.com",
   });
   
   async function onGoogleButtonPress() {

@@ -6,6 +6,8 @@ import {
   ScrollView,
   Image,
   StyleSheet,
+  TextInput,
+
 } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
 import { removeFromCart, clearCart, fetchCartItems, addToCart, updateCartItems } from "../redux/cartSlice";
@@ -14,7 +16,6 @@ import Navbar from "../components/Navbar";
 import { AntDesign } from "@expo/vector-icons";
 import SearchBar from "../components/SearchBar";
 import Checkbox from "expo-checkbox";
-import { TextInput } from "react-native-web";
 
 export default function CartScreen({ navigation }) {
   const cartItems = useSelector((state) => state.cart.cartItems);
