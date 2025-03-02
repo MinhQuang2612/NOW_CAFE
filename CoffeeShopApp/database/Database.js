@@ -33,19 +33,26 @@ app.post("/api/login", async (req, res) => {
   const { userName, passWord } = req.body;
 
   try {
-    // Tìm user theo userName
     const user = await Account.findOne({ userName });
 
     console.log("🔍 Tìm User:", user);
     if (!user) {
-      return res.status(401).json({ success: false, message: "Sai tài khoản hoặc mật khẩu" });
+      return res.status(401).json({ success: false, message: "Sai tài khoản" });
     }
 
-    // So sánh mật khẩu đã hash
-    const isMatch = await bcrypt.compare(passWord, user.passWord);
+    // Kiểm tra cả plain text và hash
+    let isMatch = await bcrypt.compare(passWord, user.passWord);
+    console.log("🔍 Kết quả so sánh với hash:", isMatch);
+
+    if (!isMatch && user.passWord === passWord) {
+      console.log("Sử dụng plain text match cho user:", userName);
+      console.log("🔍 Plain text so sánh:", user.passWord, "===", passWord);
+      isMatch = true;
+    }
+
     console.log("🔍 Mật khẩu nhập vào:", passWord);
     console.log("🔍 Mật khẩu trong DB:", user.passWord);
-    console.log("🔍 Kết quả so sánh:", isMatch);
+    console.log("🔍 Kết quả so sánh cuối cùng:", isMatch);
 
     if (!isMatch) {
       return res.status(401).json({ success: false, message: "Sai mật khẩu" });
@@ -206,7 +213,13 @@ app.put("/api/change-password/:userId", async (req, res) => {
       });
     }
 
-    const isMatch = await bcrypt.compare(oldPassword, account.passWord);
+    // Kiểm tra cả hash và plain text
+    let isMatch = await bcrypt.compare(oldPassword, account.passWord);
+    if (!isMatch && account.passWord === oldPassword) {
+      console.log("Sử dụng plain text match cho userId:", userId);
+      isMatch = true;
+    }
+
     if (!isMatch) {
       return res.status(401).json({ 
         success: false, 
@@ -214,6 +227,7 @@ app.put("/api/change-password/:userId", async (req, res) => {
       });
     }
 
+    // Hash mật khẩu mới trước khi lưu
     const salt = await bcrypt.genSalt(10);
     const hashedNewPassword = await bcrypt.hash(newPassword, salt);
     account.passWord = hashedNewPassword;

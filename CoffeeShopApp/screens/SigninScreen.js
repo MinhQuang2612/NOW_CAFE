@@ -50,9 +50,10 @@ const SignInScreen = ({ navigation }) => {
       Alert.alert("Lỗi", "Vui lòng nhập tên đăng nhập và mật khẩu!");
       return;
     }
-
+  
     try {
       const bodyData = JSON.stringify({ userName: username, passWord: password });
+      console.log("Gửi request với:", { userName: username, passWord: password }); // Debug
       const response = await fetch("http://localhost:5001/api/login", {
         method: "POST",
         headers: {
@@ -61,20 +62,19 @@ const SignInScreen = ({ navigation }) => {
         },
         body: bodyData,
       });
-
+  
       if (!response.ok) {
+        const errorText = await response.text();
+        console.log("Phản hồi lỗi:", errorText);
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
-
+  
       const data = await response.json();
-
+  
       if (data.success) {
         Alert.alert("Thành công", "Đăng nhập thành công!");
         console.log("🚀 Đăng nhập thành công:", data.user);
-
-        // Lưu thông tin người dùng vào Redux
         dispatch(setUser(data.user));
-
         navigation.navigate("Home", { user: data.user });
       } else {
         Alert.alert("Thất bại", data.message || "Tên đăng nhập hoặc mật khẩu không đúng!");
