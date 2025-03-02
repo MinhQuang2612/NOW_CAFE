@@ -33,28 +33,32 @@ app.post("/api/login", async (req, res) => {
   const { userName, passWord } = req.body;
 
   try {
-    // 1️⃣ Tìm user theo userName (KHÔNG tìm theo passWord)
-    const user = await Account.findOne({ userName, passWord });
+    const user = await Account.findOne({ userName });
 
     console.log("🔍 Tìm User:", user);
     if (!user) {
-      return res.status(401).json({ success: false, message: "Sai tài khoản hoặc mật khẩu" });
+      return res.status(401).json({ success: false, message: "Sai tài khoản" });
     }
 
-    // 2️⃣ So sánh mật khẩu nhập vào với mật khẩu đã hash trong DB
-    const isMatch = await bcrypt.compare(passWord, user.passWord);
-    
+    // Kiểm tra cả plain text và hash
+    let isMatch = await bcrypt.compare(passWord, user.passWord);
+    console.log("🔍 Kết quả so sánh với hash:", isMatch);
+
+    if (!isMatch && user.passWord === passWord) {
+      console.log("Sử dụng plain text match cho user:", userName);
+      console.log("🔍 Plain text so sánh:", user.passWord, "===", passWord);
+      isMatch = true;
+    }
+
     console.log("🔍 Mật khẩu nhập vào:", passWord);
     console.log("🔍 Mật khẩu trong DB:", user.passWord);
-    console.log("🔍 Kết quả so sánh:", isMatch);
+    console.log("🔍 Kết quả so sánh cuối cùng:", isMatch);
 
-    // if (!isMatch) {
-    //   return res.status(401).json({ success: false, message: "Sai tài khoản hoặc mật khẩu" });
-    // }
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: "Sai mật khẩu" });
+    }
 
-    // 3️⃣ Nếu đúng, trả về thành công
     res.json({ success: true, message: "Đăng nhập thành công", user });
-
   } catch (error) {
     console.error("❌ Lỗi API:", error);
     res.status(500).json({ message: "Lỗi server", error });
@@ -98,14 +102,13 @@ const UserSchema = new mongoose.Schema({
   email: String,
 });
 
-const User = mongoose.model("User", UserSchema, "Users"); // Sử dụng collection "User"
+const User = mongoose.model("User", UserSchema, "Users");
 
 // Route để lấy thông tin người dùng theo userId từ collection User
 app.get("/api/user/:userId", async (req, res) => {
   try {
     console.log("🔍 Gọi API với userId:", req.params.userId);
 
-    // Sử dụng đúng tên collection
     const user = await User.findOne({ user_id: req.params.userId });
 
     console.log("📌 Kết quả từ MongoDB:", user);
@@ -153,12 +156,10 @@ const CartSchema = new mongoose.Schema({
 const Cart = mongoose.model("Cart", CartSchema, "Cart");
 
 // Route để lấy giỏ hàng theo userId từ collection Cart
-
 app.get("/api/cart/:UserId", async (req, res) => {
   try {
     console.log("🔍 Gọi API với userId:", req.params.UserId);
 
-    // Sử dụng đúng tên collection
     const cart = await Cart.findOne({ "User.User_id": req.params.UserId });
 
     console.log("📌 Kết quả từ MongoDB:", cart);
@@ -194,7 +195,58 @@ app.put("/api/cart/:UserId", async (req, res) => {
     res.status(500).json({ message: "Lỗi server", error });
   }
 });
- 
+
+// Đổi mật khẩu
+app.put("/api/change-password/:userId", async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const userId = req.params.userId;
+
+    console.log("Đã nhận request change-password với userId:", userId);
+
+    const account = await Account.findOne({ userId });
+
+    if (!account) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Không tìm thấy tài khoản" 
+      });
+    }
+
+    // Kiểm tra cả hash và plain text
+    let isMatch = await bcrypt.compare(oldPassword, account.passWord);
+    if (!isMatch && account.passWord === oldPassword) {
+      console.log("Sử dụng plain text match cho userId:", userId);
+      isMatch = true;
+    }
+
+    if (!isMatch) {
+      return res.status(401).json({ 
+        success: false, 
+        message: "Mật khẩu cũ không đúng" 
+      });
+    }
+
+    // Hash mật khẩu mới trước khi lưu
+    const salt = await bcrypt.genSalt(10);
+    const hashedNewPassword = await bcrypt.hash(newPassword, salt);
+    account.passWord = hashedNewPassword;
+    await account.save();
+
+    res.json({ 
+      success: true, 
+      message: "Đổi mật khẩu thành công" 
+    });
+  } catch (error) {
+    console.error("❌ Lỗi đổi mật khẩu:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Lỗi server", 
+      error: error.message 
+    });
+  }
+});
+
 // Chạy server
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
