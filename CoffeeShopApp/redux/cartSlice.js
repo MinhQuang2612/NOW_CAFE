@@ -61,10 +61,18 @@ const cartSlice = createSlice({
     addToCart: (state, action) => {
       const { product, quantity } = action.payload;
       console.log("🛒 Add to Cart:", product, quantity);
-      const existingItem = state.cartItems.find((item) => item.id === product.sanpham_id);
+      const existingItem = state.cartItems.find((item) => item.sanpham_id === product.sanpham_id);
 
       if (existingItem) {
         existingItem.quantity += quantity;
+        // existingItem.quantity = quantity
+        if(existingItem.quantity < 1){
+          // Xóa sản phẩm khỏi giỏ hàng
+          state.cartItems = state.cartItems.filter((item) => item.sanpham_id !== product.sanpham_id);
+        }
+
+        
+
       } else {
         state.cartItems.push({ ...product, quantity });
       }

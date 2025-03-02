@@ -35,15 +35,42 @@ export default function CartScreen({ navigation }) {
 
   useEffect(() => {
     setNumberItem(cartItems.length);
-    const defaultDataCheck = cartItems.map((item) => {
-      return {
-        id: item.sanpham_id,
-        price: item.price,
-        quantity: item.quantity,
-        checked: false,
-      };
-    });
-    setDataCheck(defaultDataCheck);
+    // Nếu dataCheck rỗng:
+    // - Lấy dữ liệu từ cartItems
+    // - Set checked = false
+    console.log("🛒 Cart Items:", cartItems);
+    console.log("🛒 Data Check:", dataCheck);
+    dataCheck.length === 0 ?
+      setDataCheck(
+        cartItems.map((item) => ({
+          id: item.sanpham_id,
+          price: item.price,
+          quantity: item.quantity,
+          checked: false,
+        }))
+      ):(
+        dataCheck.map((item) => {
+          const itemInCart = cartItems.find((cartItem) => cartItem.sanpham_id === item.id);
+          if (!itemInCart) {
+            return {
+              id: item.id,
+              price: item.price,
+              quantity: item.quantity,
+              checked: false,
+            }
+          }
+          return {
+            id: item.id,
+            price: item.price,
+            quantity: item.quantity,
+            checked: item.checked,
+          }
+        })
+    )
+    console.log("🛒 Cart Items1:", cartItems);
+    console.log("🛒 Data Check1:", dataCheck);
+
+    // setDataCheck(defaultDataCheck);
   }, [cartItems]);
 
   useEffect(() => {
@@ -70,10 +97,10 @@ export default function CartScreen({ navigation }) {
   }, [dataCheck]);
   console.log("🛒 Data Check:", dataCheck);
 
-  // useEffect(() => {
-  //   dispatch(updateCartItems({ userId: userIdDefault, cartItems: cartItems }));
-  // }
-  // , [cartItems]);
+  useEffect(() => {
+    dispatch(updateCartItems({ userId: userIdDefault, cartItems: cartItems }));
+  }
+  , [cartItems]);
 
   /*
     Trong data chưa có
@@ -153,7 +180,9 @@ export default function CartScreen({ navigation }) {
   const handleDecreaseQuantity = ({item}) => {
     // Thay đổi số lượng trong cartItems
     dispatch(addToCart({ product: item, quantity: -1 }));
-  
+
+    
+   
   };
 
  
@@ -161,8 +190,6 @@ export default function CartScreen({ navigation }) {
   const handleIncreaseQuantity = ({item}) => {
     // Thay đổi số lượng trong cartItems
     dispatch(addToCart({ product: item, quantity: 1 }));
-    // Update database 
-   
   };
 
   // Xu ly check all
