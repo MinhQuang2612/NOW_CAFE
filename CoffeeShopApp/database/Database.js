@@ -141,6 +141,59 @@ app.put("/api/user/:userId", async (req, res) => {
     res.status(500).json({ message: "Lỗi server", error });
   }
 });
+
+// Định nghĩa Schema và Model cho collection Cart
+const CartSchema = new mongoose.Schema({
+  giohang_id: String,
+  User: Object,
+  SanPham: Array,
+  totalPrice: Number,
+});
+
+const Cart = mongoose.model("Cart", CartSchema, "Cart");
+
+// Route để lấy giỏ hàng theo userId từ collection Cart
+
+app.get("/api/cart/:UserId", async (req, res) => {
+  try {
+    console.log("🔍 Gọi API với userId:", req.params.UserId);
+
+    // Sử dụng đúng tên collection
+    const cart = await Cart.findOne({ "User.User_id": req.params.UserId });
+
+    console.log("📌 Kết quả từ MongoDB:", cart);
+
+    if (!cart) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy giỏ hàng" });
+    }
+
+    res.json({ success: true, cart });
+  } catch (error) {
+    console.error("❌ Lỗi API:", error);
+    res.status(500).json({ message: "Lỗi server", error });
+  }
+});
+
+// Route để cập nhật giỏ hàng
+app.put("/api/cart/:UserId", async (req, res) => {
+  try {
+    console.log("🔍 Cập nhật giỏ hàng với userId:", req.params.UserId);
+    console.log("Dữ liệu nhận được:", req.body);
+    const updatedCart = await Cart.findOneAndUpdate(
+      { "User.User_id": req.params.UserId },
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
+    console.log("📌 Kết quả sau khi cập nhật:", updatedCart);
+    if (!updatedCart) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy giỏ hàng" });
+    }
+    res.json({ success: true, cart: updatedCart });
+  } catch (error) {
+    console.error("❌ Lỗi API:", error);
+    res.status(500).json({ message: "Lỗi server", error });
+  }
+});
  
 // Chạy server
 const PORT = process.env.PORT || 5001;
