@@ -59,8 +59,9 @@ const cartSlice = createSlice({
     // },
 
     addToCart: (state, action) => {
-      const { productId, quantity } = action.payload;
-      const existingItem = state.cartItems.find((item) => item.id === productId);
+      const { product, quantity } = action.payload;
+      console.log("🛒 Add to Cart:", product, quantity);
+      const existingItem = state.cartItems.find((item) => item.id === product.sanpham_id);
 
       if (existingItem) {
         existingItem.quantity += quantity;

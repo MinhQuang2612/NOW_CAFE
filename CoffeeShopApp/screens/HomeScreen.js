@@ -4,7 +4,7 @@ import {
   TouchableWithoutFeedback, Keyboard, Alert 
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { addToCart } from "../redux/cartSlice"; // Import Redux action
+import { addToCart, fetchCartItems, updateCartItems } from "../redux/cartSlice"; // Import Redux action
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import SearchBar from "../components/SearchBar";
@@ -18,6 +18,7 @@ const HomeScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [selectedType, setSelectedType] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const cartItems = useSelector((state) => state.cart.cartItems);
 
   const handlePressOutside = () => {
     Keyboard.dismiss();
@@ -37,8 +38,14 @@ const HomeScreen = ({ navigation }) => {
     };
 
     fetchProducts();
+    dispatch(fetchCartItems({ userId: "user0001" }));
   }, []);
 
+  useEffect(() => {
+    dispatch(updateCartItems({ userId: "user0001", cartItems }));
+  }, [cartItems]);
+
+  console.log("🛒 Cart Items:", cartItems);
   const handleSelectType = (type) => {
     setSelectedType((prevType) => (prevType === type ? null : type));
     handlePressOutside();
@@ -53,6 +60,7 @@ const HomeScreen = ({ navigation }) => {
   const handleAddToCart = (product) => {
     dispatch(addToCart({ product, quantity: 1 }));
     Alert.alert("Thành công", `${product.name} đã được thêm vào giỏ hàng!`);
+    
   };
 
   // 🔍 Lọc sản phẩm theo danh mục và tìm kiếm
