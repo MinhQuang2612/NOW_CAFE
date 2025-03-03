@@ -27,6 +27,7 @@ import OrderDetailScreens from "./screens/OderDetailScreen.js";
 import ReviewScreens from "./screens/ReviewScreen.js";
 import ReviewDetailScreen from "./screens/ReviewDetailScreen.js";
 import BillScreen from "./screens/BillScreen.js";
+import SearchOrderScreen from "./screens/SearchOrderScreen.js";
 
 const Stack = createStackNavigator();
 
@@ -176,6 +177,12 @@ export default function App() {
           <Stack.Screen
             name="Bill"
             component={BillScreen}
+            options={{ headerShown: false }}
+          />
+
+          <Stack.Screen
+            name="SearchOrder"
+            component={SearchOrderScreen}
             options={{ headerShown: false }}
           />
         </Stack.Navigator>

@@ -1,48 +1,24 @@
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React, { useState } from "react";
-import Navbar from "../components/Navbar";
+import { useNavigation } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 import Footer from "../components/Footer";
 
-const bill = {
-  hoadon_id: "HD0001",
-  user: {
-    user_id: "user0001",
-    name: "Tran Minh Quang",
-    phoneNumber: "0123456789",
-    address: "Ho Chi Minh, Vietnam",
-  },
-  ChiTietHoaDon: {
-    chitiethoadon_id: "CTHD0001",
-    SanPham: [
-      {
-        productId: "SP0001",
-        name: "Cà phê sữa đá",
-        quantity: 1,
-        price: 25000,
-      },
-      {
-        productId: "SP0002",
-        name: "Cà phê sữa đá",
-        quantity: 1,
-        price: 25000,
-      },
-    ],
-    dateCreated: "2024-02-18T10:00:00Z",
-  },
-  tongTien: 25000,
-};
-
-const product = {
-  productId: "SP0001",
-  name: "Cà phê sữa đá",
-  quantity: 1,
-  price: 25000,
-};
-
 const RecentlyOtherScreen = () => {
+  const navigation = useNavigation();
   const [activeTab, setActiveTab] = useState(true);
+
   const handleToggleTab = () => {
     setActiveTab(!activeTab);
+  };
+
+  // Khai báo dữ liệu mẫu cho bill
+  const defaultBill = {
+    hoadon_id: "12345",
+    ChiTietHoaDon: {
+      dateCreated: "2025-02-28",
+      SanPham: [{}, {}, {}], // Giả định có 3 sản phẩm
+    },
   };
 
   const Item = ({ bill, status }) => {
@@ -59,11 +35,16 @@ const RecentlyOtherScreen = () => {
         <View>
           <View style={styles.statusContainer}>
             <Text style={styles.nameText}>Order: {bill.hoadon_id}</Text>
-            <Text style={[status === 'Packing' ? {backgroundColor: "#F2994A",} : {backgroundColor: '#32CD32'},
-              styles.statusText
-            ]}>
-              
-              {status}</Text>
+            <Text
+              style={[
+                status === "Packing"
+                  ? { backgroundColor: "#F2994A" }
+                  : { backgroundColor: "#32CD32" },
+                styles.statusText,
+              ]}
+            >
+              {status}
+            </Text>
           </View>
 
           <Text style={styles.inforText}>
@@ -77,13 +58,23 @@ const RecentlyOtherScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Navbar user={{ name: "Hiep Hinh" }} />
+      {/* Thanh tiêu đề với nút Tìm kiếm và Thông báo */}
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Orders</Text>
+        <View style={styles.iconContainer}>
+          {/* Nút Tìm kiếm */}
+          <TouchableOpacity onPress={() => navigation.navigate("SearchOrder")}>
+            <Ionicons name="search" size={24} color="967259" />
+          </TouchableOpacity>
+        </View>
+      </View>
 
+      {/* Chuyển đổi tab */}
       <View style={styles.toggleTabContainer}>
         <TouchableOpacity
           style={[
             { borderTopLeftRadius: 10, borderBottomLeftRadius: 10 },
-            activeTab ? [styles.selected, {}] : styles.unselected,
+            activeTab ? styles.selected : styles.unselected,
           ]}
           onPress={handleToggleTab}
         >
@@ -96,17 +87,20 @@ const RecentlyOtherScreen = () => {
           ]}
           onPress={handleToggleTab}
         >
-          <Text style={styles.textTab}>Past Oders</Text>
+          <Text style={styles.textTab}>Past Orders</Text>
         </TouchableOpacity>
       </View>
 
       {/* Nội dung tab */}
-      <View style={styles.contentConatiner}>
-        {activeTab === true ? <Item bill={bill} status={'Packing'} /> : 
-        <Item bill={bill} status={'Completed'} />
-        }
+      <View style={styles.contentContainer}>
+        {activeTab ? (
+          <Item bill={defaultBill} status={"Packing"} />
+        ) : (
+          <Item bill={defaultBill} status={"Completed"} />
+        )}
       </View>
-        <Footer/>
+
+      <Footer />
     </View>
   );
 };
@@ -116,19 +110,36 @@ export default RecentlyOtherScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 120,
+    paddingTop: 50,
+    backgroundColor: "#EEDCC6",
   },
-  // Chuyển tab
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    top:-20,
+    paddingVertical: 15,
+    backgroundColor: "#EEDCC6",
+  },
+  headerText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "967259",
+  },
+  iconContainer: {
+    flexDirection: "row",
+    gap: 15,
+  },
   toggleTabContainer: {
     flexDirection: "row",
-    justifyContent: "flex-end",
+    justifyContent: "center",
     marginHorizontal: 20,
     marginBottom: 10,
   },
   selected: {
     backgroundColor: "#230C02",
     padding: 10,
-
     width: 100,
     alignItems: "center",
   },
@@ -142,13 +153,11 @@ const styles = StyleSheet.create({
   textTab: {
     color: "white",
   },
-  // Nội dung tab
-  contentConatiner: {
+  contentContainer: {
     flex: 1,
     backgroundColor: "#230C02",
     padding: 20,
   },
-  // item
   itemContainer: {
     flexDirection: "row",
     alignItems: "center",
