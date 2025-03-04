@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -25,281 +25,159 @@ export default function CartScreen({ navigation }) {
   const [dataCheck, setDataCheck] = useState([]);
   const [totalAmount, setTotalAmount] = useState(0);
   const [checkAll, setCheckAll] = useState(false);
-
-  // User mac dinh la user0001
-  const userIdDefault = "user0001";
-  
-
-  useEffect(() => {
-    dispatch(fetchCartItems({ userId: userIdDefault }));
-  }, []);
+  const user = useSelector((state) => state.user.user); // Get user from Redux
+  const userId = user?.userId || "guest"; // Use guest as fallback
+  const prevCartItems = useRef(cartItems); // Lưu giá trị cartItems trước đó
 
   useEffect(() => {
-    setNumberItem(cartItems.length);
-    // Nếu dataCheck rỗng:
-    // - Lấy dữ liệu từ cartItems
-    // - Set checked = false
-    console.log("🛒 Cart Items:", cartItems);
-    console.log("🛒 Data Check:", dataCheck);
-    dataCheck.length === 0 ?
-      setDataCheck(
-        cartItems.map((item) => ({
-          id: item.sanpham_id,
-          price: item.price,
-          quantity: item.quantity,
-          checked: false,
-        }))
-      ):(
-        dataCheck.map((item) => {
-          const itemInCart = cartItems.find((cartItem) => cartItem.sanpham_id === item.id);
-          if (!itemInCart) {
-            return {
-              id: item.id,
-              price: item.price,
-              quantity: item.quantity,
-              checked: false,
-            }
-          }
-          return {
-            id: item.id,
-            price: item.price,
-            quantity: item.quantity,
-            checked: item.checked,
-          }
-        })
-    )
-    console.log("🛒 Cart Items1:", cartItems);
-    console.log("🛒 Data Check1:", dataCheck);
-
-    // setDataCheck(defaultDataCheck);
-  }, [cartItems]);
-
-  useEffect(() => {
-    const total = dataCheck.reduce((acc = 0, item) => {
-      if (item.checked) {
-        console.log("🛒 Item Price:", item.price);
-        acc += item.price * item.quantity;
-        return acc;
-      }
-      return acc;
-    }, 0);
-    setTotalAmount(total);
-
-
-    // Tinh so luong san pham da check
-    const numberItemChecked = dataCheck.filter((item) => item.checked).length;
-    setNumberItem(numberItemChecked);
-
-    // Thay doi checkAll
-    const checkAll = dataCheck.every((item) => item.checked);
-    setCheckAll(checkAll);
-
-
-  }, [dataCheck]);
-  console.log("🛒 Data Check:", dataCheck);
-
-  useEffect(() => {
-    dispatch(updateCartItems({ userId: userIdDefault, cartItems: cartItems }));
+    dispatch(fetchCartItems({ userId }));
+  }, [userId, dispatch]);
+// Đồng bộ dataCheck với cartItems
+useEffect(() => {
+  if (cartItems.length === 0) {
+    setDataCheck([]);
+    setNumberItem(0);
+    setTotalAmount(0);
+    setCheckAll(false);
+    return;
   }
-  , [cartItems]);
 
-  /*
-    Trong data chưa có
-      - categrory
-      - size
-      - khong can total price
-      - note
-  */
-  const Item = ({ item }) => {
-    const dataCheckItem = dataCheck.find(
-      (check) => check.id === item.sanpham_id
-    );
-    return (
-      <View style={styles.itemContainer}>
-        <View style={styles.itemDetailContainer}>
-          <Checkbox
-            value={dataCheckItem?.checked}
-            onValueChange={(value) => {
-              const newDataCheck = dataCheck.map((check) => {
-                if (check.id === item.sanpham_id) {
-                  return {
-                    id: check.id,
-                    price: check.price,
-                    quantity: check.quantity,
-                    checked: value,
-                  };
-                }
-                return check;
-              });
-              setDataCheck(newDataCheck);
-            }}
-          />
-          <Image source={{ uri: item.image }} style={styles.image} />
-          <View>
-            <Text style={styles.categoryText}>Category</Text>
-            <Text style={styles.name}>
-              {item.name.length > 15
-                ? item.name.slice(0, 15) + "..."
-                : item.name}
-            </Text>
-            {/* <Text style={styles.name}>{item.name}</Text> */}
-            <View style={styles.priceContainer}>
-              <Text style={styles.price}> ${item.price}</Text>
-              <Text>Size: 100ml </Text>
-            </View>
-          </View>
-          {/* Thay doi so luong */}
-          <View style={styles.quantityContainer}>
-            <TouchableOpacity style={styles.quantityButton} 
-              onPress={() => handleDecreaseQuantity({item})}
-            >
-              <Text style={styles.textQuantityButton}>-</Text>
-            </TouchableOpacity>
-            <Text>{item.quantity} </Text>
-            <TouchableOpacity style={styles.quantityButton}
-              onPress={() => handleIncreaseQuantity({item})}
-            >
-              <Text style={styles.quantity}>+</Text>
-            </TouchableOpacity>
+  setDataCheck((prevDataCheck) => {
+    const updatedDataCheck = cartItems.map((item) => {
+      const existingCheck = prevDataCheck.find((check) => check.id === item.sanpham_id);
+      return {
+        id: item.sanpham_id,
+        price: item.price,
+        quantity: item.quantity,
+        checked: existingCheck ? existingCheck.checked : false,
+      };
+    });
+    return updatedDataCheck;
+  });
+  setNumberItem(cartItems.length);
+}, [cartItems]);
+
+// Tính toán totalAmount và checkAll dựa trên dataCheck
+useEffect(() => {
+  const total = dataCheck.reduce((acc, item) => (item.checked ? acc + item.price * item.quantity : acc), 0);
+  setTotalAmount(total);
+  const checkedCount = dataCheck.filter((item) => item.checked).length;
+  setNumberItem(checkedCount);
+  setCheckAll(dataCheck.length > 0 && dataCheck.every((item) => item.checked));
+  // Chỉ log khi cần thiết để debug
+  // console.log("🛒 Data Check:", dataCheck);
+}, [dataCheck]);
+
+// Update cartItems lên server khi có thay đổi thực sự
+useEffect(() => {
+  if (JSON.stringify(cartItems) !== JSON.stringify(prevCartItems.current) && cartItems.length > 0) {
+    dispatch(updateCartItems({ userId, cartItems }));
+    prevCartItems.current = cartItems;
+  }
+}, [cartItems, userId, dispatch]);
+
+const Item = ({ item }) => {
+  const dataCheckItem = dataCheck.find((check) => check.id === item.sanpham_id);
+  return (
+    <View style={styles.itemContainer}>
+      <View style={styles.itemDetailContainer}>
+        <Checkbox
+          value={dataCheckItem?.checked || false}
+          onValueChange={(value) =>
+            setDataCheck((prev) =>
+              prev.map((check) =>
+                check.id === item.sanpham_id ? { ...check, checked: value } : check
+              )
+            )
+          }
+        />
+        <Image source={{ uri: item.image }} style={styles.image} />
+        <View>
+          <Text style={styles.categoryText}>Category</Text>
+          <Text style={styles.name}>
+            {item.name.length > 15 ? item.name.slice(0, 15) + "..." : item.name}
+          </Text>
+          <View style={styles.priceContainer}>
+            <Text style={styles.price}>${item.price}</Text>
+            <Text>Size: 350ml</Text>
           </View>
         </View>
-        {/* Note */}
-        <View style={styles.inputContainer}>
-          <Text>Note</Text>
-          <TextInput placeholder="Aaabbcc" style={styles.input} />
-          <TouchableOpacity>
-            <AntDesign name="edit" size={22} color="black" />
+        <View style={styles.quantityContainer}>
+          <TouchableOpacity
+            style={styles.quantityButton}
+            onPress={() => handleDecreaseQuantity(item)}
+          >
+            <Text style={styles.textQuantityButton}>-</Text>
+          </TouchableOpacity>
+          <Text>{item.quantity}</Text>
+          <TouchableOpacity
+            style={styles.quantityButton}
+            onPress={() => handleIncreaseQuantity(item)}
+          >
+            <Text style={styles.quantity}>+</Text>
           </TouchableOpacity>
         </View>
       </View>
-    );
-  };
-
-
-  // Xử lý số lượng
-
-  const handleDecreaseQuantity = ({item}) => {
-    // Thay đổi số lượng trong cartItems
-    dispatch(addToCart({ product: item, quantity: -1 }));
-
-    
-   
-  };
-
- 
-
-  const handleIncreaseQuantity = ({item}) => {
-    // Thay đổi số lượng trong cartItems
-    dispatch(addToCart({ product: item, quantity: 1 }));
-  };
-
-  // Xu ly check all
-
-  const handleCheckAll = (value) => { // value: true/false cuar checkAll
-    // Neu value = true thi setCheckAll = true, nguoc lai
-    setCheckAll(value);
-    const newDataCheck = dataCheck.map((check) => {
-      return {
-        id: check.id,
-        price: check.price,
-        quantity: check.quantity,
-        checked: value,
-      };
-    });
-    setDataCheck(newDataCheck);
-
-    
-    
-  };
-
-  // console.log("🛒 Cart Items:", cartItems);
-  return (
-    <View style={styles.container}>
-      <Navbar />
-      <SearchBar />
-
-      <ScrollView contentContainerStyle={styles.cartList}>
-        <View style={styles.titleContainer}>
-          <AntDesign name="shoppingcart" size={40} color="black" />
-          <Text style={styles.title}>Cart({numberItem})</Text>
-        </View>
-        {cartItems.length > 0 ? (
-          cartItems.map((item) => <Item key={item.sanpham_id} item={item} />)
-        ) : (
-          <Text style={styles.emptyCart}>Giỏ hàng trống</Text>
-        )}
-
-        <View style={styles.totalContainer}>
-          <View style={styles.checkContainer}>
-            <Checkbox
-              value={checkAll}
-              onValueChange={(value) => handleCheckAll(value)}
-              
-            />
-            <Text>All</Text>
-          </View>
-          <View>
-            <Text>
-              Total payment:{" "}
-              <Text style={styles.textTotal}>${totalAmount}</Text>
-            </Text>
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.checkoutButton}>
-          <Text style={styles.checkoutText}>
-            Buy Now !({dataCheck.filter((item) => item.checked).length})
-          </Text>
+      <View style={styles.inputContainer}>
+        <Text>Note</Text>
+        <TextInput placeholder="Aaabbcc" style={styles.input} />
+        <TouchableOpacity>
+          <AntDesign name="edit" size={22} color="black" />
         </TouchableOpacity>
-
-        <View style={styles.otherContainer}>
-          <Text style={styles.otherText}>Other drink you may like</Text>
-          <Text>See all</Text>
-        </View>
-
-        <View style={styles.otherItemContainer}>
-          <View>
-            <Image
-              source={{ uri: "https://picsum.photos/200/300" }}
-              style={styles.imageOther}
-            />
-            <View style={styles.otherItem}>
-              <Text style={styles.name}>Product Name</Text>  
-              <Text style={styles.name}>$15.5</Text>
-            </View>
-          </View>
-
-          <View>
-            <Image
-              source={{ uri: "https://picsum.photos/200/300" }}
-              style={styles.imageOther}
-            />
-            <View style={styles.otherItem}>
-              <Text style={styles.name}>Product Name</Text>
-              <Text style={styles.name}>$15.5</Text>
-            </View>
-          </View>
-        </View>
-      </ScrollView>
-
-      {/* {cartItems.length > 0 && (
-        <View style={styles.footer}>
-          <Text style={styles.totalText}>Tổng cộng: ${totalAmount}</Text>
-          <TouchableOpacity
-            style={styles.checkoutButton}
-            onPress={() => navigation.navigate("Bill")}
-          >
-            <Text style={styles.checkoutText}>Thanh toán</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => dispatch(clearCart())}>
-            <Text style={styles.clearCartText}>Xóa giỏ hàng</Text>
-          </TouchableOpacity>
-        </View>
-      )} */}
-      <Footer />
+      </View>
     </View>
   );
-}
+};
+
+const handleDecreaseQuantity = (item) => {
+  dispatch(addToCart({ product: { ...item, userId }, quantity: -1 }));
+};
+
+const handleIncreaseQuantity = (item) => {
+  dispatch(addToCart({ product: { ...item, userId }, quantity: 1 }));
+};
+
+const handleCheckAll = (value) => {
+  setCheckAll(value);
+  setDataCheck((prev) => prev.map((check) => ({ ...check, checked: value })));
+};
+
+return (
+  <View style={styles.container}>
+    <Navbar />
+    <SearchBar />
+    <ScrollView contentContainerStyle={styles.cartList}>
+      <View style={styles.titleContainer}>
+        <AntDesign name="shoppingcart" size={40} color="black" />
+        <Text style={styles.title}>Cart({numberItem})</Text>
+      </View>
+      {cartItems.length > 0 ? (
+        cartItems.map((item) => <Item key={item.sanpham_id} item={item} />)
+      ) : (
+        <Text style={styles.emptyCart}>Cart is empty</Text>
+      )}
+      <View style={styles.totalContainer}>
+        <View style={styles.checkContainer}>
+          <Checkbox value={checkAll} onValueChange={handleCheckAll} />
+          <Text>All</Text>
+        </View>
+        <View>
+          <Text>
+            Total payment: <Text style={styles.textTotal}>${totalAmount}</Text>
+          </Text>
+        </View>
+      </View>
+      <TouchableOpacity style={styles.checkoutButton}>
+        <Text style={styles.checkoutText}>
+          Buy Now! ({dataCheck.filter((item) => item.checked).length})
+        </Text>
+      </TouchableOpacity>
+      {/* Giữ nguyên phần gợi ý sản phẩm khác nếu có */}
+    </ScrollView>
+    <Footer />
+  </View>
+);
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#EEDCC6", paddingTop: 100 },

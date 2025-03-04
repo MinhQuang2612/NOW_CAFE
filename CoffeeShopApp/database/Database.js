@@ -92,7 +92,7 @@ app.get("/api/products", async (req, res) => {
   }
 });
 
-// Định nghĩa Schema và Model cho collection user
+// Định nghĩa Schema và Model cho collection User
 const UserSchema = new mongoose.Schema({
   user_id: String,
   name: String,
@@ -164,11 +164,12 @@ app.get("/api/cart/:userId", async (req, res) => {
 
     console.log("📌 Kết quả từ MongoDB:", cart);
 
+    // Nếu không tìm thấy giỏ hàng, trả về giỏ hàng rỗng thay vì lỗi 404
     if (!cart) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy giỏ hàng" });
+      return res.json({ cart: { SanPham: [], totalPrice: 0 } });
     }
 
-    res.json({ success: true, cart });
+    res.json({ cart });
   } catch (error) {
     console.error("❌ Lỗi API:", error);
     res.status(500).json({ message: "Lỗi server", error });
@@ -180,16 +181,22 @@ app.put("/api/cart/:userId", async (req, res) => {
   try {
     console.log("🔍 Cập nhật giỏ hàng với userId:", req.params.userId);
     console.log("Dữ liệu nhận được:", req.body);
+
+    const { SanPham } = req.body;
+
+    // Tìm và cập nhật hoặc tạo mới giỏ hàng với upsert: true
     const updatedCart = await Cart.findOneAndUpdate(
       { "User.User_id": req.params.userId },
-      { $set: req.body },
-      { new: true, runValidators: true }
+      {
+        SanPham: SanPham || [],
+        totalPrice: SanPham.reduce((sum, item) => sum + (item.price * item.quantity || 0), 0),
+        User: { User_id: req.params.userId }, // Đảm bảo User object có User_id
+      },
+      { upsert: true, new: true, runValidators: true }
     );
+
     console.log("📌 Kết quả sau khi cập nhật:", updatedCart);
-    if (!updatedCart) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy giỏ hàng" });
-    }
-    res.json({ success: true, cart: updatedCart });
+    res.json({ cart: updatedCart });
   } catch (error) {
     console.error("❌ Lỗi API:", error);
     res.status(500).json({ message: "Lỗi server", error });
