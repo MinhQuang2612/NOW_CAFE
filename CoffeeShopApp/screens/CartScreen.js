@@ -167,7 +167,19 @@ return (
           </Text>
         </View>
       </View>
-      <TouchableOpacity style={styles.checkoutButton}>
+      <TouchableOpacity style={styles.checkoutButton}
+        onPress={() => {
+          const selectedItems = dataCheck
+            .filter((item) => item.checked)
+            .map((item) => {
+              const fullItem = cartItems.find((cartItem) => cartItem.sanpham_id === item.id);
+              return { ...fullItem, quantity: item.quantity }; // Lấy thêm `image`, `name`
+            });
+        
+          if (selectedItems.length === 0) return; // Nếu không có sản phẩm nào, không làm gì cả
+        
+          navigation.navigate("Bill", { selectedItems, totalAmount });
+        }}>
         <Text style={styles.checkoutText}>
           Buy Now! ({dataCheck.filter((item) => item.checked).length})
         </Text>
