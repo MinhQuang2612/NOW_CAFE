@@ -29,41 +29,127 @@ const AccountSchema = new mongoose.Schema({
 
 const Account = mongoose.model("Account", AccountSchema, "Account");
 
+//API đăng nhập tài khoản
 app.post("/api/login", async (req, res) => {
   const { userName, passWord } = req.body;
-
   try {
+    //Tìm user theo userName (KHÔNG tìm theo passWord)
     const user = await Account.findOne({ userName });
-
-    console.log("🔍 Tìm User:", user);
     if (!user) {
-      return res.status(401).json({ success: false, message: "Sai tài khoản" });
+      return res.status(401).json({ success: false, message: "tài khoản hoặc mật khẩu chưa đăng ký" });
     }
-
-    // Kiểm tra cả plain text và hash
-    let isMatch = await bcrypt.compare(passWord, user.passWord);
-    console.log("🔍 Kết quả so sánh với hash:", isMatch);
-
-    if (!isMatch && user.passWord === passWord) {
-      console.log("Sử dụng plain text match cho user:", userName);
-      console.log("🔍 Plain text so sánh:", user.passWord, "===", passWord);
-      isMatch = true;
-    }
-
-    console.log("🔍 Mật khẩu nhập vào:", passWord);
-    console.log("🔍 Mật khẩu trong DB:", user.passWord);
-    console.log("🔍 Kết quả so sánh cuối cùng:", isMatch);
+    //So sánh mật khẩu nhập vào với mật khẩu đã hash trong DB
+    let isMatch = await bcrypt.compare(passWord,user.passWord);
+    console.log("Mật khẩu nhập vào:", passWord);
+    console.log("Mật khẩu trong DB:", user.passWord);
+    console.log("Kết quả so sánh:", isMatch);
 
     if (!isMatch) {
       return res.status(401).json({ success: false, message: "Sai mật khẩu" });
+    } else{
+      isMatch = true;
     }
-
+    if (user.userName===req.body.userName) {
+      isMatch = true;
+    }else{
+      isMatch = false;
+    }
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: "Sai tài khoản" });
+    }
+    //Nếu đúng, trả về thành công
     res.json({ success: true, message: "Đăng nhập thành công", user });
   } catch (error) {
     console.error("❌ Lỗi API:", error);
     res.status(500).json({ message: "Lỗi server", error });
   }
 });
+
+const AccountGoogleSchema = new mongoose.Schema({
+  googleID: { type: String, required: true },
+  email: { type: String, required: true},
+  name: { type: String, required: true },
+  userId: { type: String, unique: true },
+});
+
+const AccountGoogle = mongoose.model("AccountGoogle", AccountGoogleSchema);
+// API đăng nhập tài khoản Google
+app.post("/api/auth/google", async (req, res) => {
+  console.log("📩 Request body nhận được:", req.body);
+  const {email,name,iud } = req.body;
+  const googleID = req.body.uid;
+  console.log("🔍 Google ID:", googleID);
+  try {
+    
+    // Kiểm tra người dùng trong MongoDB
+    const user = await AccountGoogle.findOne({ googleID });
+    if (!user) {
+      const count = await AccountGoogle.countDocuments();
+        const newUser = new AccountGoogle({
+            googleID: req.body.uid,
+            email: req.body.gmail,
+            name: req.body.username,
+            userId: `userID${String(count + 1).padStart(4, "0")}`,
+        });
+        await newUser.save();
+        res.status(201).json({ message: "User created successfully", user: newUser });
+      console.log("🆕 Người dùng mới đã được tạo:",newUser);
+    } else {
+      console.log("✅ Người dùng đã tồn tại:");
+    }
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error("❌ Lỗi xác thực Google:", error);
+    res.status(401).json({ success: false, message: "Xác thực thất bại" });
+  }
+});
+
+// định nghĩa accountFacebook
+const AccountFacebookSchema = new mongoose.Schema({
+  faceID: { type: String, required: true },
+  email: { type: String, required: true},
+  name: { type: String, required: true },
+  userId: { type: String, unique: true },
+});
+
+const AccountFacebook = mongoose.model("AccountFacebook", AccountFacebookSchema);
+// API đăng nhập tài khoản Facebook
+app.post("/api/auth/facebook", async (req, res) => {
+  console.log("📩 Request body nhận được:", req.body);
+  const { email, username, uid } = req.body; // Fix key names
+  const faceID = uid;
+  console.log("🔍 Facebook ID:", faceID);
+
+  try {
+    // Kiểm tra người dùng trong MongoDB
+    const user = await AccountFacebook.findOne({ faceID });
+
+    if (!user) {
+      const count = await AccountFacebook.countDocuments();
+      console.log("🔢 Số lượng người dùng hiện tại:", count);
+      const newUser = new AccountFacebook({
+        faceID: req.body.uid,
+        email: req.body.email,
+        name: req.body.username,
+        userId: `userID${String(count + 1).padStart(4, "0")}`,
+      });
+
+      await newUser.save();
+      console.log("🆕 Người dùng mới đã được tạo:", newUser);
+
+      return res.status(201).json({ message: "User created successfully", user: newUser });
+    }
+
+    console.log("✅ Người dùng đã tồn tại:");
+    return res.json({ success: true, user }); // Thêm `return` để dừng chương trình
+     
+  } catch (error) {
+    console.error("❌ Lỗi xác thực Facebook:", error);
+    return res.status(500).json({ success: false, message: "Lỗi server" }); // Thay 401 -> 500
+  }
+});
+
+
 
 // Định nghĩa Schema và Model cho sản phẩm
 const ProductSchema = new mongoose.Schema({

@@ -12,7 +12,7 @@ import CoffeeTypeTabs from "../components/CategoryCoffee";
 import Product from "../components/Product"; // Import ProductCard
 
 
-const HomeScreen = ({ navigation }) => {
+const HomeScreen = ({ navigation,route }) => {
   const dispatch = useDispatch();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,6 +22,7 @@ const HomeScreen = ({ navigation }) => {
   const user = useSelector((state) => state.user.user); // Get user from Redux
   const userId = user?.userId || "guest"; // Use guest as fallback if no user is logged in
   const prevCartItems = useRef(cartItems); // Lưu giá trị cartItems trước đó
+  const { accountUser } = route.params || {}; // Get user from route params
 
 
   const handlePressOutside = () => {

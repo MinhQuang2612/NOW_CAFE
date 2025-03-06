@@ -9,19 +9,18 @@ import {
   Dimensions, 
   Image,
   Alert,
-  Platform,
 } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import * as AuthSession from "expo-auth-session";
 import * as Facebook from "expo-auth-session/providers/facebook";
-import * as Google from "expo-auth-session/providers/google";
 import { auth } from "../config"; // Import đúng từ file cấu hình
-import { signInWithCredential } from "firebase/auth";
-import { getAuth,GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { getAuth,GoogleAuthProvider,FacebookAuthProvider,signInWithCredential} from "firebase/auth";
+import { firebase } from "../firebaseConfig";
+import { makeRedirectUri } from "expo-auth-session"; // ✅ Import đúng
+import * as Google from "expo-auth-session/providers/google"; // ✅ Import Google Auth đúng cách
 
 
-
+WebBrowser.maybeCompleteAuthSession();
 
 // Lấy kích thước màn hình
 const { width, height } = Dimensions.get("window");
@@ -49,31 +48,76 @@ const OrDivider = () => {
   );
 };
 
-
 const LoginScreen = ({ navigation }) => {
-  const [userInfo, setUserInfo] = useState(null);
-  const [initializing, setInitializing] = useState(true);
-  const [user, setUser] = useState(null);
-
-
- 
-  GoogleSignin.configure({
-    webClientId: "843660951518-c702nqvtd7q27j3aa18ddi3npjrcboq3.apps.googleusercontent.com", // Thay thế bằng Web Client ID từ Firebase Console
-    iosClientId: "843660951518-t66vdll10vmboev9j3tkfbnknv7coi2b.apps.googleusercontent.com",
+  const [data, setData] = useState(null);
+  const CLIENT_ID =
+  "843660951518-c702nqvtd7q27j3aa18ddi3npjrcboq3.apps.googleusercontent.com"; // Web Client ID từ Firebase
+  
+  const [request1, response1, promptAsync1] = Google.useAuthRequest({
+    clientId:CLIENT_ID,
+    redirectUri: makeRedirectUri({ useProxy: true }), // ✅ Dùng redirectUri đúng
+    prompt: "select_account",
   });
-  
-  async function onGoogleButtonPress() {
-    const auth = getAuth();
-    const provider = new GoogleAuthProvider();
-  
-    try {
-      const result = await signInWithPopup(auth, provider);
-      console.log("✅ Đăng nhập thành công:", result.user.email,result.user.displayName);
-      navigation.navigate("Home");
-    } catch (error) {
-      console.error("❌ Lỗi đăng nhập Google:", error);
+
+  useEffect(() => {
+    if (response1?.type === "success") {
+      const { authentication } = response1;
+      handleGoogleSignIn(authentication.accessToken);
     }
-  }
+  }, [response1]);
+
+  const handleGoogleSignIn = async (accessToken) => {
+    try {
+      const credential = firebase.auth.GoogleAuthProvider.credential(null, accessToken);
+      await firebase.auth().signInWithCredential(credential);
+     // console.log("✅ Đăng nhập thành công!");
+      const user = firebase.auth().currentUser;
+      console.log("✅ Đăng nhập thành công:", user.email, user.displayName,user.uid);
+      handleLogin();
+    } catch (error) {
+      console.error("❌ Lỗi xác thực Firebase:", error);
+    }
+  };
+  const handleLogin = async () => {
+    try {
+      // 🔥 Lấy dữ liệu từ Firebase Authentication
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        throw new Error("Không tìm thấy thông tin tài khoản!");
+      }
+      // ✅ Sử dụng user thay vì data chưa khởi tạo
+      const bodyData = JSON.stringify({
+        gmail: user.email,
+        username: user.displayName,
+        uid: user.uid
+      });
+      const response = await fetch("http://localhost:5001/api/auth/google", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: bodyData,
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+  
+      const result = await response.json();
+  
+      if (result.success) {
+        Alert.alert("Thành công", "Đăng nhập thành công!");
+        navigation.navigate("Home",{user:result.user});
+      } else {
+        Alert.alert("Thất bại", result.message || "Tên đăng nhập hoặc mật khẩu không đúng!");
+      }
+    } catch (error) {
+      console.error("❌ Lỗi đăng nhập:", error);
+      Alert.alert("Lỗi", "Đã có lỗi xảy ra, vui lòng thử lại sau.");
+    }
+  };
+  
   const [request, response, promptAsync] = Facebook.useAuthRequest({
     clientId: "2670594856469458",
   });
@@ -83,10 +127,60 @@ const LoginScreen = ({ navigation }) => {
       const { access_token } = response.params;
       const facebookCredential = FacebookAuthProvider.credential(access_token);
       signInWithCredential(getAuth(), facebookCredential).then((userCredential) => {
-        navigation.navigate("Home", { email: userCredential.user.email, displayName: userCredential.user.displayName });
+        setData(userCredential.user);
+        
       });
     }
   }, [response]);
+
+  useEffect(() => {
+    if (data) {
+      console.log("Dữ liệu user sau khi cập nhật:", data);
+      handleLoginFaceBook();
+    }
+  }, [data]);
+
+  
+  const handleLoginFaceBook = async () => {
+    try {
+    
+      if (!data) {
+        throw new Error("Không tìm thấy thông tin tài khoản!");
+      }
+      console.log("✅ Đăng nhập thành công:", data.email, data.displayName,data.uid);
+      // ✅ Sử dụng user thay vì data chưa khởi tạo
+      const bodyData = JSON.stringify({
+        gmail: data.email,
+        username: data.displayName,
+        uid: data.uid
+      });
+      const response = await fetch("http://localhost:5001/api/auth/facebook", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: bodyData,
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+  
+      const result = await response.json();
+  
+      if (result.success) {
+        Alert.alert("Thành công", "Đăng nhập thành công!");
+        navigation.navigate("Home",{user:result.user});
+      } else {
+        Alert.alert("Thất bại", result.message || "Tên đăng nhập hoặc mật khẩu không đúng!");
+      }
+    } catch (error) {
+      console.error("❌ Lỗi đăng nhập:", error);
+      Alert.alert("Lỗi", "Đã có lỗi xảy ra, vui lòng thử lại sau.");
+    }
+  };
+
 
   return (
     <ScrollView 
@@ -134,7 +228,7 @@ const LoginScreen = ({ navigation }) => {
 
             <View style={styles.socialButtonsContainer}>
               <TouchableOpacity style={styles.socialButton}
-                onPress={() => onGoogleButtonPress().then(() => console.log('Signed in with Google!'))}
+                 onPress={() => promptAsync1()}
                 
                >
                 <Image 
