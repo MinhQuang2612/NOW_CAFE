@@ -38,7 +38,7 @@ app.post("/api/login", async (req, res) => {
     const user = await Account.findOne({ userName });
 
     if (!user) {
-      return res.status(401).json({ success: false, message: "tài khoản hoặc mật khẩu chưa đăng ký" });
+      return res.status(401).json({ success: false, message: "tài khoản hoặc mật khẩu chưa đăng ký..." });
     }
     //So sánh mật khẩu nhập vào với mật khẩu đã hash trong DB
     let isMatch = await bcrypt.compare(passWord,user.passWord);
