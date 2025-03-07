@@ -5,7 +5,7 @@ export const fetchCartItems = createAsyncThunk(
   "cart/fetchCartItems",
   async ({ userId }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/cart/${userId}`);
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/cart/${userId}`);
       if (!response.ok) {
         // Nếu không tìm thấy (404) hoặc lỗi khác, trả về mảng rỗng
         if (response.status === 404) {
@@ -33,7 +33,7 @@ export const updateCartItems = createAsyncThunk(
   "cart/updateCartItems",
   async ({ userId, cartItems }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/cart/${userId}`, {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/cart/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

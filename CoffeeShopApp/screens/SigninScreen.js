@@ -50,11 +50,11 @@ const SignInScreen = ({ navigation }) => {
       Alert.alert("Lỗi", "Vui lòng nhập tên đăng nhập và mật khẩu!");
       return;
     }
-  
+
     try {
       const bodyData = JSON.stringify({ userName: username, passWord: password });
       console.log("Gửi request với:", { userName: username, passWord: password }); // Debug
-      const response = await fetch("http://localhost:5001/api/login", {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

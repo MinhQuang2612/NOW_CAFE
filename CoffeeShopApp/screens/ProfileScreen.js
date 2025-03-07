@@ -39,7 +39,7 @@ export default function ProfileScreen({ navigation }) {
 
   const fetchUserDetails = async (userId) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/user/${userId}`);
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/user/${userId}`);
       const data = await response.json();
       if (data.success) {
         const { name, phoneNumber, address, points, email } = data.user;
@@ -75,7 +75,7 @@ export default function ProfileScreen({ navigation }) {
     };
 
     try {
-      const response = await fetch(`http://localhost:5001/api/user/${user.userId}`, {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/user/${user.userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedData),

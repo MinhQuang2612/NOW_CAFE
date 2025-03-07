@@ -32,9 +32,11 @@ const Account = mongoose.model("Account", AccountSchema, "Account");
 //API đăng nhập tài khoản
 app.post("/api/login", async (req, res) => {
   const { userName, passWord } = req.body;
+
   try {
     //Tìm user theo userName (KHÔNG tìm theo passWord)
     const user = await Account.findOne({ userName });
+
     if (!user) {
       return res.status(401).json({ success: false, message: "tài khoản hoặc mật khẩu chưa đăng ký" });
     }
@@ -361,5 +363,13 @@ app.put("/api/change-password/:userId", async (req, res) => {
 });
 
 // Chạy server
+// const PORT = process.env.PORT || 5001;
+// app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+      console.log(`Server is running at http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;

@@ -70,7 +70,7 @@ const LoginScreen = ({ navigation }) => {
         username: user.displayName,
         uid: user.uid,
       });
-      const response = await fetch("http://localhost:5001/api/auth/google", {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/google`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -147,7 +147,7 @@ const LoginScreen = ({ navigation }) => {
         uid: userId,
       });
       console.log("Gửi dữ liệu đến API:", bodyData);
-      const response = await fetch("http://localhost:5001/api/auth/facebook", {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/facebook`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

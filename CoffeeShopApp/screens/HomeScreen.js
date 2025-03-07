@@ -32,7 +32,7 @@ const HomeScreen = ({ navigation,route }) => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch("http://localhost:5001/api/products"); // Đổi IP nếu chạy trên thiết bị thật
+        const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/products`); // Đổi IP nếu chạy trên thiết bị thật
         const data = await response.json();
         setProducts(data);
       } catch (error) {

@@ -31,7 +31,7 @@ export default function Navbar() {
   const fetchUserById = async (userId) => {
     try {
       console.log("Gọi API với userId:", userId); // Log khi gọi API
-      const response = await fetch(`http://localhost:5001/api/user/${userId}`, {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/user/${userId}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });
