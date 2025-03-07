@@ -76,28 +76,41 @@ const AccountGoogle = mongoose.model("AccountGoogle", AccountGoogleSchema);
 // API đăng nhập tài khoản Google
 app.post("/api/auth/google", async (req, res) => {
   console.log("📩 Request body nhận được:", req.body);
-  const {email,name,iud } = req.body;
-  const googleID = req.body.uid;
+  const { email, name, uid } = req.body;
+  const googleID = uid;
   console.log("🔍 Google ID:", googleID);
+
   try {
-    
-    // Kiểm tra người dùng trong MongoDB
-    const user = await AccountGoogle.findOne({ googleID });
+    let user = await AccountGoogle.findOne({ googleID });
+
     if (!user) {
       const count = await AccountGoogle.countDocuments();
-        const newUser = new AccountGoogle({
-            googleID: req.body.uid,
-            email: req.body.gmail,
-            name: req.body.username,
-            userId: `userID${String(count + 1).padStart(4, "0")}`,
-        });
-        await newUser.save();
-        res.status(201).json({ message: "User created successfully", user: newUser });
-      console.log("🆕 Người dùng mới đã được tạo:",newUser);
+      const newUserId = `user${String(count + 1).padStart(4, "0")}`; // Sửa thành `user0001`
+      user = new AccountGoogle({
+        googleID: req.body.uid,
+        email: req.body.gmail,
+        name: req.body.username,
+        userId: newUserId,
+      });
+      await user.save();
+      console.log("🆕 Người dùng mới đã được tạo:", user);
+
+      // Tạo bản ghi trong collection Users với định dạng userId mới
+      const newUserInUsers = new User({
+        user_id: newUserId, // Sử dụng newUserId
+        name: req.body.username,
+        email: req.body.gmail,
+        phoneNumber: "",
+        address: "",
+        points: 0,
+      });
+      await newUserInUsers.save();
+      console.log("🆕 Đã tạo user trong Users:", newUserInUsers);
     } else {
-      console.log("✅ Người dùng đã tồn tại:");
+      console.log("✅ Người dùng đã tồn tại:", user);
     }
-    res.json({ success: true, user });
+
+    res.json({ success: true, user, userId: user.userId });
   } catch (error) {
     console.error("❌ Lỗi xác thực Google:", error);
     res.status(401).json({ success: false, message: "Xác thực thất bại" });
@@ -116,36 +129,43 @@ const AccountFacebook = mongoose.model("AccountFacebook", AccountFacebookSchema)
 // API đăng nhập tài khoản Facebook
 app.post("/api/auth/facebook", async (req, res) => {
   console.log("📩 Request body nhận được:", req.body);
-  const { email, username, uid } = req.body; // Fix key names
+  const { email, username, uid } = req.body;
   const faceID = uid;
   console.log("🔍 Facebook ID:", faceID);
 
   try {
-    // Kiểm tra người dùng trong MongoDB
-    const user = await AccountFacebook.findOne({ faceID });
+    let user = await AccountFacebook.findOne({ faceID });
 
     if (!user) {
       const count = await AccountFacebook.countDocuments();
-      console.log("🔢 Số lượng người dùng hiện tại:", count);
-      const newUser = new AccountFacebook({
+      const newUserId = `user${String(count + 1).padStart(4, "0")}`; // Sửa thành `user0001`
+      user = new AccountFacebook({
         faceID: req.body.uid,
         email: req.body.email,
         name: req.body.username,
-        userId: `userID${String(count + 1).padStart(4, "0")}`,
+        userId: newUserId,
       });
+      await user.save();
+      console.log("🆕 Người dùng mới đã được tạo:", user);
 
-      await newUser.save();
-      console.log("🆕 Người dùng mới đã được tạo:", newUser);
-
-      return res.status(201).json({ message: "User created successfully", user: newUser });
+      // Tạo bản ghi trong collection Users với định dạng userId mới
+      const newUserInUsers = new User({
+        user_id: newUserId, // Sử dụng newUserId
+        name: req.body.username,
+        email: req.body.email,
+        phoneNumber: "",
+        address: "",
+        points: 0,
+      });
+      await newUserInUsers.save();
+      console.log("🆕 Đã tạo user trong Users:", newUserInUsers);
     }
 
-    console.log("✅ Người dùng đã tồn tại:");
-    return res.json({ success: true, user }); // Thêm `return` để dừng chương trình
-     
+    console.log("✅ Người dùng đã tồn tại:", user);
+    res.json({ success: true, user, userId: user.userId });
   } catch (error) {
     console.error("❌ Lỗi xác thực Facebook:", error);
-    return res.status(500).json({ success: false, message: "Lỗi server" }); // Thay 401 -> 500
+    res.status(500).json({ success: false, message: "Lỗi server" });
   }
 });
 
