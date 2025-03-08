@@ -61,7 +61,7 @@ export default function ChangePasswordScreen({ navigation }) {
 
     try {
       const response = await axios.put(
-        `http://localhost:5001/api/change-password/${userId}`,
+        `${process.env.EXPO_PUBLIC_API_URL}/api/change-password/${userId}`,
         { oldPassword, newPassword }
       );
 

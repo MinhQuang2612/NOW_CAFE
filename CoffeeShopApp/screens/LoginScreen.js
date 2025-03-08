@@ -1,27 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { 
-  View, 
-  Text, 
-  ImageBackground, 
-  TouchableOpacity, 
-  StyleSheet, 
-  ScrollView, 
-  Dimensions, 
-  Image,
-  Alert,
-  Platform,
-} from "react-native";
+import { View, Text, ImageBackground, TouchableOpacity, StyleSheet, ScrollView, Dimensions, Image, Alert } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import * as AuthSession from "expo-auth-session";
 import * as Facebook from "expo-auth-session/providers/facebook";
-import * as Google from "expo-auth-session/providers/google";
 import { auth } from "../config"; // Import đúng từ file cấu hình
-import { signInWithCredential } from "firebase/auth";
-import { getAuth,GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { getAuth, GoogleAuthProvider, FacebookAuthProvider, signInWithCredential } from "firebase/auth";
+import { firebase } from "../firebaseConfig";
+import { makeRedirectUri } from "expo-auth-session";
+import * as Google from "expo-auth-session/providers/google";
+import { useDispatch } from "react-redux"; // Import useDispatch
+import { setUser } from "../redux/userSlice"; // Import setUser action
 
-
-
+WebBrowser.maybeCompleteAuthSession();
 
 // Lấy kích thước màn hình
 const { width, height } = Dimensions.get("window");
@@ -49,31 +39,77 @@ const OrDivider = () => {
   );
 };
 
-
 const LoginScreen = ({ navigation }) => {
-  const [userInfo, setUserInfo] = useState(null);
-  const [initializing, setInitializing] = useState(true);
-  const [user, setUser] = useState(null);
+  const [data, setData] = useState(null);
+  const dispatch = useDispatch(); // Initialize dispatch
+  const CLIENT_ID = "843660951518-c702nqvtd7q27j3aa18ddi3npjrcboq3.apps.googleusercontent.com"; // Web Client ID từ Firebase
 
-
- 
-  GoogleSignin.configure({
-    webClientId: "843660951518-c702nqvtd7q27j3aa18ddi3npjrcboq3.apps.googleusercontent.com", // Thay thế bằng Web Client ID từ Firebase Console
-    iosClientId: "843660951518-t66vdll10vmboev9j3tkfbnknv7coi2b.apps.googleusercontent.com",
+  const [request1, response1, promptAsync1] = Google.useAuthRequest({
+    clientId: CLIENT_ID,
+    redirectUri: makeRedirectUri({ useProxy: true }),
+    prompt: "select_account",
   });
-  
-  async function onGoogleButtonPress() {
-    const auth = getAuth();
-    const provider = new GoogleAuthProvider();
-  
-    try {
-      const result = await signInWithPopup(auth, provider);
-      console.log("✅ Đăng nhập thành công:", result.user.email,result.user.displayName);
-      navigation.navigate("Home");
-    } catch (error) {
-      console.error("❌ Lỗi đăng nhập Google:", error);
+
+  useEffect(() => {
+    if (response1?.type === "success") {
+      const { authentication } = response1;
+      handleGoogleSignIn(authentication.accessToken);
     }
-  }
+  }, [response1]);
+
+  const handleGoogleSignIn = async (accessToken) => {
+    try {
+      const credential = GoogleAuthProvider.credential(null, accessToken);
+      const userCredential = await signInWithCredential(getAuth(), credential);
+      const user = userCredential.user;
+      console.log("✅ Đăng nhập Google thành công:", user.email, user.displayName, user.uid);
+  
+      // Gọi API để lấy userId từ backend
+      const bodyData = JSON.stringify({
+        gmail: user.email,
+        username: user.displayName,
+        uid: user.uid,
+      });
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/google`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: bodyData,
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+  
+      const result = await response.json();
+      console.log("Phản hồi từ API:", result);
+  
+      if (result.success) {
+        // Lưu userId từ API vào Redux
+        dispatch(setUser({
+          userId: result.userId, // Lưu userId từ backend (userID0001)
+          email: user.email,
+          name: user.displayName,
+        }));
+        console.log("✅ User data saved to Redux with userId:", result.userId);
+  
+        Alert.alert("Thành công", "Đăng nhập thành công!");
+        navigation.navigate("Home", { user: result.user });
+      } else {
+        Alert.alert("Thất bại", result.message || "Đăng nhập thất bại!");
+      }
+    } catch (error) {
+      console.error("❌ Lỗi xác thực Firebase:", error.message);
+      Alert.alert("Lỗi", "Đã có lỗi xảy ra khi đăng nhập Google.");
+    }
+  };
+  
+  // Xóa hàm handleLogin vì đã tích hợp vào handleGoogleSignIn
+
+  
+
   const [request, response, promptAsync] = Facebook.useAuthRequest({
     clientId: "2670594856469458",
   });
@@ -83,49 +119,92 @@ const LoginScreen = ({ navigation }) => {
       const { access_token } = response.params;
       const facebookCredential = FacebookAuthProvider.credential(access_token);
       signInWithCredential(getAuth(), facebookCredential).then((userCredential) => {
-        navigation.navigate("Home", { email: userCredential.user.email, displayName: userCredential.user.displayName });
+        setData(userCredential.user);
+      }).catch((error) => {
+        console.error("❌ Lỗi đăng nhập Facebook:", error.message);
+        Alert.alert("Lỗi", "Đã có lỗi xảy ra khi đăng nhập Facebook.");
       });
     }
   }, [response]);
 
+  useEffect(() => {
+    if (data) {
+      console.log("Dữ liệu user sau khi cập nhật (Facebook):", data.email, data.displayName, data.uid);
+      handleLoginFaceBook(data.uid);
+    }
+  }, [data]);
+
+  const handleLoginFaceBook = async (userId) => {
+    try {
+      if (!data) {
+        throw new Error("Không tìm thấy thông tin tài khoản!");
+      }
+      console.log("✅ Đăng nhập Facebook thành công:", data.email, data.displayName, data.uid);
+  
+      const bodyData = JSON.stringify({
+        email: data.email,
+        username: data.displayName,
+        uid: userId,
+      });
+      console.log("Gửi dữ liệu đến API:", bodyData);
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/facebook`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: bodyData,
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+  
+      const result = await response.json();
+      console.log("Phản hồi từ API:", result);
+  
+      if (result.success) {
+        // Lưu userId từ API vào Redux
+        dispatch(setUser({
+          userId: result.userId, // Lưu userId từ backend (userID0001)
+          email: data.email,
+          name: data.displayName,
+        }));
+        console.log("✅ User data saved to Redux with userId:", result.userId);
+  
+        Alert.alert("Thành công", "Đăng nhập thành công!");
+        navigation.navigate("Home", { user: result.user });
+      } else {
+        Alert.alert("Thất bại", result.message || "Đăng nhập thất bại!");
+      }
+    } catch (error) {
+      console.error("❌ Lỗi đăng nhập:", error.message);
+      Alert.alert("Lỗi", "Đã có lỗi xảy ra, vui lòng thử lại sau.");
+    }
+  };
+
   return (
-    <ScrollView 
-      contentContainerStyle={styles.container}
-      bounces={false}
-    >
+    <ScrollView contentContainerStyle={styles.container} bounces={false}>
       <ImageBackground
-        source={require("../assets/images/bg-welcome.png")} 
+        source={require("../assets/images/bg-welcome.png")}
         style={styles.background}
         resizeMode="cover"
       >
         <View style={styles.content}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Image 
-              source={require("../assets/icons/back-arrow.png")}
-              style={styles.backIcon}
-            />
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Image source={require("../assets/icons/back-arrow.png")} style={styles.backIcon} />
           </TouchableOpacity>
 
           <View style={styles.innerContainer}>
             <View style={styles.textContainer}>
-                <Text style={styles.title1}>Welcome</Text>
-                <Text style={styles.title2}>Back!</Text>
+              <Text style={styles.title1}>Welcome</Text>
+              <Text style={styles.title2}>Back!</Text>
             </View>
             <View style={styles.buttonContainer}>
-              <TouchableOpacity 
-                style={styles.button}
-                onPress={() => navigation.navigate('Signin')}
-              >
+              <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("Signin")}>
                 <Text style={styles.buttonText}>Login</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.button}
-                onPress={() => navigation.navigate('Signup')}
-              >
+              <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("Signup")}>
                 <Text style={styles.buttonText}>Create an account</Text>
               </TouchableOpacity>
             </View>
@@ -133,28 +212,14 @@ const LoginScreen = ({ navigation }) => {
             <OrDivider />
 
             <View style={styles.socialButtonsContainer}>
-              <TouchableOpacity style={styles.socialButton}
-                onPress={() => onGoogleButtonPress().then(() => console.log('Signed in with Google!'))}
-                
-               >
-                <Image 
-                  source={require("../assets/icons/google.png")}
-                  style={styles.socialIcon}
-                />
+              <TouchableOpacity style={styles.socialButton} onPress={() => promptAsync1()}>
+                <Image source={require("../assets/icons/google.png")} style={styles.socialIcon} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.socialButton}
-                onPress={() => promptAsync()}
-              >
-                <Image 
-                  source={require("../assets/icons/facebook.png")}
-                  style={styles.socialIcon}
-                />
+              <TouchableOpacity style={styles.socialButton} onPress={() => promptAsync()}>
+                <Image source={require("../assets/icons/facebook.png")} style={styles.socialIcon} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.socialButton}>
-                <Image 
-                  source={require("../assets/icons/apple.png")}
-                  style={styles.socialIcon}
-                />
+              <TouchableOpacity style={styles.socialButton} disabled={true}>
+                <Image source={require("../assets/icons/apple.png")} style={styles.socialIcon} />
               </TouchableOpacity>
             </View>
           </View>
@@ -163,6 +228,7 @@ const LoginScreen = ({ navigation }) => {
     </ScrollView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {

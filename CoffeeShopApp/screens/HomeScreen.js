@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   View, Text, StyleSheet, ScrollView, SafeAreaView, 
   TouchableWithoutFeedback, Keyboard, Alert 
@@ -12,13 +12,18 @@ import CoffeeTypeTabs from "../components/CategoryCoffee";
 import Product from "../components/Product"; // Import ProductCard
 
 
-const HomeScreen = ({ navigation }) => {
+const HomeScreen = ({ navigation,route }) => {
   const dispatch = useDispatch();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedType, setSelectedType] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const cartItems = useSelector((state) => state.cart.cartItems);
+  const user = useSelector((state) => state.user.user); // Get user from Redux
+  const userId = user?.userId || "guest"; // Use guest as fallback if no user is logged in
+  const prevCartItems = useRef(cartItems); // Lưu giá trị cartItems trước đó
+  const { accountUser } = route.params || {}; // Get user from route params
+
 
   const handlePressOutside = () => {
     Keyboard.dismiss();
@@ -27,7 +32,7 @@ const HomeScreen = ({ navigation }) => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch("http://localhost:5001/api/products"); // Đổi IP nếu chạy trên thiết bị thật
+        const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/products`); // Đổi IP nếu chạy trên thiết bị thật
         const data = await response.json();
         setProducts(data);
       } catch (error) {
@@ -37,30 +42,36 @@ const HomeScreen = ({ navigation }) => {
       }
     };
 
-    fetchProducts();
-    dispatch(fetchCartItems({ userId: "user0001" }));
-  }, []);
+   fetchProducts();
+    dispatch(fetchCartItems({ userId }));
+  }, [userId, dispatch]);
 
-  useEffect(() => {
-    dispatch(updateCartItems({ userId: "user0001", cartItems }));
-  }, [cartItems]);
+useEffect(() => {
+    // Chỉ update khi cartItems thực sự thay đổi
+    if (JSON.stringify(cartItems) !== JSON.stringify(prevCartItems.current) && cartItems.length > 0) {
+      dispatch(updateCartItems({ userId, cartItems }));
+      prevCartItems.current = cartItems; // Cập nhật ref sau khi dispatch
+    }
+  }, [cartItems, userId, dispatch]);
 
-  console.log("🛒 Cart Items:", cartItems);
-  const handleSelectType = (type) => {
-    setSelectedType((prevType) => (prevType === type ? null : type));
-    handlePressOutside();
+  const handleAddToCart = (product) => {
+    dispatch(addToCart({ 
+      product: {
+        ...product,
+        userId // Include userId with the product
+      }, 
+      quantity: 1 
+    }));
+    Alert.alert("Success", `${product.name} has been added to cart!`);
   };
 
   const handleSearch = (query) => {
     setSearchQuery(query);
     handlePressOutside();
   };
-
-  // 🛒 Xử lý thêm sản phẩm vào giỏ hàng
-  const handleAddToCart = (product) => {
-    dispatch(addToCart({ product, quantity: 1 }));
-    Alert.alert("Thành công", `${product.name} đã được thêm vào giỏ hàng!`);
-    
+  const handleSelectType = (type) => {
+    setSelectedType((prevType) => (prevType === type ? null : type));
+    handlePressOutside();
   };
 
   // 🔍 Lọc sản phẩm theo danh mục và tìm kiếm
@@ -70,7 +81,6 @@ const HomeScreen = ({ navigation }) => {
     const matchesSearch = searchQuery
       ? regex.test(product.name) || regex.test(product.description)
       : true;
-
     return matchesCategory && matchesSearch;
   });
 

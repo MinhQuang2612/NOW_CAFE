@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -7,10 +7,15 @@ import {
   Image,
   StyleSheet,
   TextInput,
-
 } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
-import { removeFromCart, clearCart, fetchCartItems, addToCart, updateCartItems } from "../redux/cartSlice";
+import {
+  removeFromCart,
+  clearCart,
+  fetchCartItems,
+  addToCart,
+  updateCartItems,
+} from "../redux/cartSlice";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import { AntDesign } from "@expo/vector-icons";
@@ -19,151 +24,103 @@ import Checkbox from "expo-checkbox";
 
 export default function CartScreen({ navigation }) {
   const cartItems = useSelector((state) => state.cart.cartItems);
-  // const totalAmount = useSelector((state) => state.cart.totalAmount);
   const dispatch = useDispatch();
-  const [numberItem, setNumberItem] = useState(0); // Số lượng sản phẩm da checked
+  const [numberItem, setNumberItem] = useState(0); // Số lượng sản phẩm đã checked
   const [dataCheck, setDataCheck] = useState([]);
   const [totalAmount, setTotalAmount] = useState(0);
   const [checkAll, setCheckAll] = useState(false);
-
-  // User mac dinh la user0001
-  const userIdDefault = "user0001";
-  
-
-  useEffect(() => {
-    dispatch(fetchCartItems({ userId: userIdDefault }));
-  }, []);
+  const user = useSelector((state) => state.user.user); // Get user from Redux
+  const userId = user?.userId || "guest"; // Use guest as fallback
+  const prevCartItems = useRef(cartItems); // Lưu giá trị cartItems trước đó
 
   useEffect(() => {
-    setNumberItem(cartItems.length);
-    // Nếu dataCheck rỗng:
-    // - Lấy dữ liệu từ cartItems
-    // - Set checked = false
-    console.log("🛒 Cart Items:", cartItems);
-    console.log("🛒 Data Check:", dataCheck);
-    dataCheck.length === 0 ?
-      setDataCheck(
-        cartItems.map((item) => ({
+    dispatch(fetchCartItems({ userId }));
+  }, [userId, dispatch]);
+
+  // Đồng bộ dataCheck với cartItems
+  useEffect(() => {
+    if (cartItems.length === 0) {
+      setDataCheck([]);
+      setNumberItem(0);
+      setTotalAmount(0);
+      setCheckAll(false);
+      return;
+    }
+
+    setDataCheck((prevDataCheck) => {
+      const updatedDataCheck = cartItems.map((item) => {
+        const existingCheck = prevDataCheck.find((check) => check.id === item.sanpham_id);
+        return {
           id: item.sanpham_id,
           price: item.price,
           quantity: item.quantity,
-          checked: false,
-        }))
-      ):(
-        dataCheck.map((item) => {
-          const itemInCart = cartItems.find((cartItem) => cartItem.sanpham_id === item.id);
-          if (!itemInCart) {
-            return {
-              id: item.id,
-              price: item.price,
-              quantity: item.quantity,
-              checked: false,
-            }
-          }
-          return {
-            id: item.id,
-            price: item.price,
-            quantity: item.quantity,
-            checked: item.checked,
-          }
-        })
-    )
-    console.log("🛒 Cart Items1:", cartItems);
-    console.log("🛒 Data Check1:", dataCheck);
-
-    // setDataCheck(defaultDataCheck);
+          checked: existingCheck ? existingCheck.checked : false,
+        };
+      });
+      return updatedDataCheck;
+    });
+    setNumberItem(cartItems.length);
   }, [cartItems]);
 
+  // Tính toán totalAmount và checkAll dựa trên dataCheck
   useEffect(() => {
-    const total = dataCheck.reduce((acc = 0, item) => {
-      if (item.checked) {
-        console.log("🛒 Item Price:", item.price);
-        acc += item.price * item.quantity;
-        return acc;
-      }
-      return acc;
-    }, 0);
+    const total = dataCheck.reduce((acc, item) => (item.checked ? acc + item.price * item.quantity : acc), 0);
     setTotalAmount(total);
-
-
-    // Tinh so luong san pham da check
-    const numberItemChecked = dataCheck.filter((item) => item.checked).length;
-    setNumberItem(numberItemChecked);
-
-    // Thay doi checkAll
-    const checkAll = dataCheck.every((item) => item.checked);
-    setCheckAll(checkAll);
-
-
+    const checkedCount = dataCheck.filter((item) => item.checked).length;
+    setNumberItem(checkedCount);
+    setCheckAll(dataCheck.length > 0 && dataCheck.every((item) => item.checked));
   }, [dataCheck]);
-  console.log("🛒 Data Check:", dataCheck);
 
+  // Update cartItems lên server khi có thay đổi thực sự
   useEffect(() => {
-    dispatch(updateCartItems({ userId: userIdDefault, cartItems: cartItems }));
-  }
-  , [cartItems]);
+    if (JSON.stringify(cartItems) !== JSON.stringify(prevCartItems.current) && cartItems.length > 0) {
+      dispatch(updateCartItems({ userId, cartItems }));
+      prevCartItems.current = cartItems;
+    }
+  }, [cartItems, userId, dispatch]);
 
-  /*
-    Trong data chưa có
-      - categrory
-      - size
-      - khong can total price
-      - note
-  */
   const Item = ({ item }) => {
-    const dataCheckItem = dataCheck.find(
-      (check) => check.id === item.sanpham_id
-    );
+    const dataCheckItem = dataCheck.find((check) => check.id === item.sanpham_id);
     return (
       <View style={styles.itemContainer}>
         <View style={styles.itemDetailContainer}>
           <Checkbox
-            value={dataCheckItem?.checked}
-            onValueChange={(value) => {
-              const newDataCheck = dataCheck.map((check) => {
-                if (check.id === item.sanpham_id) {
-                  return {
-                    id: check.id,
-                    price: check.price,
-                    quantity: check.quantity,
-                    checked: value,
-                  };
-                }
-                return check;
-              });
-              setDataCheck(newDataCheck);
-            }}
+            value={dataCheckItem?.checked || false}
+            onValueChange={(value) =>
+              setDataCheck((prev) =>
+                prev.map((check) =>
+                  check.id === item.sanpham_id ? { ...check, checked: value } : check
+                )
+              )
+            }
           />
           <Image source={{ uri: item.image }} style={styles.image} />
           <View>
             <Text style={styles.categoryText}>Category</Text>
             <Text style={styles.name}>
-              {item.name.length > 15
-                ? item.name.slice(0, 15) + "..."
-                : item.name}
+              {item.name.length > 15 ? item.name.slice(0, 15) + "..." : item.name}
             </Text>
-            {/* <Text style={styles.name}>{item.name}</Text> */}
             <View style={styles.priceContainer}>
-              <Text style={styles.price}> ${item.price}</Text>
-              <Text>Size: 100ml </Text>
+              <Text style={styles.price}>${item.price}</Text>
+              <Text>Size: 350ml</Text>
             </View>
           </View>
-          {/* Thay doi so luong */}
           <View style={styles.quantityContainer}>
-            <TouchableOpacity style={styles.quantityButton} 
-              onPress={() => handleDecreaseQuantity({item})}
+            <TouchableOpacity
+              style={styles.quantityButton}
+              onPress={() => handleDecreaseQuantity(item)}
             >
               <Text style={styles.textQuantityButton}>-</Text>
             </TouchableOpacity>
-            <Text>{item.quantity} </Text>
-            <TouchableOpacity style={styles.quantityButton}
-              onPress={() => handleIncreaseQuantity({item})}
+            <Text>{item.quantity}</Text>
+            <TouchableOpacity
+              style={styles.quantityButton}
+              onPress={() => handleIncreaseQuantity(item)}
             >
               <Text style={styles.quantity}>+</Text>
             </TouchableOpacity>
           </View>
         </View>
-        {/* Note */}
         <View style={styles.inputContainer}>
           <Text>Note</Text>
           <TextInput placeholder="Aaabbcc" style={styles.input} />
@@ -175,49 +132,23 @@ export default function CartScreen({ navigation }) {
     );
   };
 
-
-  // Xử lý số lượng
-
-  const handleDecreaseQuantity = ({item}) => {
-    // Thay đổi số lượng trong cartItems
-    dispatch(addToCart({ product: item, quantity: -1 }));
-
-    
-   
+  const handleDecreaseQuantity = (item) => {
+    dispatch(addToCart({ product: { ...item, userId }, quantity: -1 }));
   };
 
- 
-
-  const handleIncreaseQuantity = ({item}) => {
-    // Thay đổi số lượng trong cartItems
-    dispatch(addToCart({ product: item, quantity: 1 }));
+  const handleIncreaseQuantity = (item) => {
+    dispatch(addToCart({ product: { ...item, userId }, quantity: 1 }));
   };
 
-  // Xu ly check all
-
-  const handleCheckAll = (value) => { // value: true/false cuar checkAll
-    // Neu value = true thi setCheckAll = true, nguoc lai
+  const handleCheckAll = (value) => {
     setCheckAll(value);
-    const newDataCheck = dataCheck.map((check) => {
-      return {
-        id: check.id,
-        price: check.price,
-        quantity: check.quantity,
-        checked: value,
-      };
-    });
-    setDataCheck(newDataCheck);
-
-    
-    
+    setDataCheck((prev) => prev.map((check) => ({ ...check, checked: value })));
   };
 
-  // console.log("🛒 Cart Items:", cartItems);
   return (
     <View style={styles.container}>
       <Navbar />
       <SearchBar />
-
       <ScrollView contentContainerStyle={styles.cartList}>
         <View style={styles.titleContainer}>
           <AntDesign name="shoppingcart" size={40} color="black" />
@@ -226,58 +157,42 @@ export default function CartScreen({ navigation }) {
         {cartItems.length > 0 ? (
           cartItems.map((item) => <Item key={item.sanpham_id} item={item} />)
         ) : (
-          <Text style={styles.emptyCart}>Giỏ hàng trống</Text>
+          <Text style={styles.emptyCart}>Cart is empty</Text>
         )}
-
         <View style={styles.totalContainer}>
           <View style={styles.checkContainer}>
-            <Checkbox
-              value={checkAll}
-              onValueChange={(value) => handleCheckAll(value)}
-              
-            />
+            <Checkbox value={checkAll} onValueChange={handleCheckAll} />
             <Text>All</Text>
           </View>
           <View>
             <Text>
-              Total payment:{" "}
-              <Text style={styles.textTotal}>${totalAmount}</Text>
+              Total payment: <Text style={styles.textTotal}>${totalAmount}</Text>
             </Text>
           </View>
         </View>
-
-          {/* <TouchableOpacity 
-             style={styles.checkoutButton}
-               onPress={() => navigation.navigate("Bill")}
-                >
-            <Text style={styles.checkoutText}>
-          Buy Now !({dataCheck.filter((item) => item.checked).length})
-            </Text>
-          </TouchableOpacity> */}
-          <TouchableOpacity 
+        <TouchableOpacity
           style={styles.checkoutButton}
           onPress={() => {
-            const selectedItems = dataCheck.filter((item) => item.checked).map((check) => {
-              const cartItem = cartItems.find((item) => item.sanpham_id === check.id);
-              return {
-                ...cartItem,
-                quantity: check.quantity,
-              };
-            });
-            navigation.navigate("Bill", { selectedItems });
+            const selectedItems = dataCheck
+              .filter((item) => item.checked)
+              .map((item) => {
+                const fullItem = cartItems.find((cartItem) => cartItem.sanpham_id === item.id);
+                return { ...fullItem, quantity: item.quantity };
+              });
+
+            if (selectedItems.length === 0) return;
+
+            navigation.navigate("Bill", { selectedItems, totalAmount });
           }}
         >
           <Text style={styles.checkoutText}>
-            Buy Now !({dataCheck.filter((item) => item.checked).length})
+            Buy Now! ({dataCheck.filter((item) => item.checked).length})
           </Text>
         </TouchableOpacity>
-        
-
         <View style={styles.otherContainer}>
-          <Text style={styles.otherText}>Other drink you may like</Text>
+          <Text style={styles.otherText}>Other drinks you may like</Text>
           <Text>See all</Text>
         </View>
-
         <View style={styles.otherItemContainer}>
           <View>
             <Image
@@ -285,11 +200,10 @@ export default function CartScreen({ navigation }) {
               style={styles.imageOther}
             />
             <View style={styles.otherItem}>
-              <Text style={styles.name}>Product Name</Text>  
+              <Text style={styles.name}>Product Name</Text>
               <Text style={styles.name}>$15.5</Text>
             </View>
           </View>
-
           <View>
             <Image
               source={{ uri: "https://picsum.photos/200/300" }}
@@ -302,21 +216,6 @@ export default function CartScreen({ navigation }) {
           </View>
         </View>
       </ScrollView>
-
-      {/* {cartItems.length > 0 && (
-        <View style={styles.footer}>
-          <Text style={styles.totalText}>Tổng cộng: ${totalAmount}</Text>
-          <TouchableOpacity
-            style={styles.checkoutButton}
-            onPress={() => navigation.navigate("Bill")}
-          >
-            <Text style={styles.checkoutText}>Thanh toán</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => dispatch(clearCart())}>
-            <Text style={styles.clearCartText}>Xóa giỏ hàng</Text>
-          </TouchableOpacity>
-        </View>
-      )} */}
       <Footer />
     </View>
   );
@@ -346,7 +245,6 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
   },
   image: { width: 70, height: 70, borderRadius: 10 },
-  details: { flex: 1, marginLeft: 15 },
   name: {
     fontSize: 14,
     fontWeight: "bold",
@@ -354,7 +252,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   price: { fontSize: 14, color: "#834D1E" },
-  actions: { flexDirection: "row", alignItems: "center", marginTop: 5 },
   quantityButton: {
     backgroundColor: "#E0C3A4",
     width: 20,
@@ -365,8 +262,6 @@ const styles = StyleSheet.create({
   },
   quantity: { fontSize: 16, fontWeight: "bold", color: "#333" },
   emptyCart: { textAlign: "center", marginTop: 20, fontSize: 18 },
-  footer: { paddingVertical: 15, alignItems: "center" },
-  totalText: { fontSize: 18, fontWeight: "bold" },
   checkoutButton: {
     backgroundColor: "#AE0B0B",
     padding: 10,
@@ -376,8 +271,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   checkoutText: { color: "white", fontSize: 18, fontWeight: "bold" },
-  clearCartText: { color: "red", marginTop: 10 },
-
   title: {
     fontSize: 20,
     fontWeight: "bold",
@@ -387,11 +280,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-  },
-  price: {
-    color: "#AE0B0B",
-    fontWeight: "bold",
-    fontSize: 16,
   },
   priceContainer: {
     flexDirection: "row",
