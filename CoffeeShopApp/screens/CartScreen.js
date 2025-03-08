@@ -246,11 +246,32 @@ export default function CartScreen({ navigation }) {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.checkoutButton}>
+          {/* <TouchableOpacity 
+             style={styles.checkoutButton}
+               onPress={() => navigation.navigate("Bill")}
+                >
+            <Text style={styles.checkoutText}>
+          Buy Now !({dataCheck.filter((item) => item.checked).length})
+            </Text>
+          </TouchableOpacity> */}
+          <TouchableOpacity 
+          style={styles.checkoutButton}
+          onPress={() => {
+            const selectedItems = dataCheck.filter((item) => item.checked).map((check) => {
+              const cartItem = cartItems.find((item) => item.sanpham_id === check.id);
+              return {
+                ...cartItem,
+                quantity: check.quantity,
+              };
+            });
+            navigation.navigate("Bill", { selectedItems });
+          }}
+        >
           <Text style={styles.checkoutText}>
             Buy Now !({dataCheck.filter((item) => item.checked).length})
           </Text>
         </TouchableOpacity>
+        
 
         <View style={styles.otherContainer}>
           <Text style={styles.otherText}>Other drink you may like</Text>

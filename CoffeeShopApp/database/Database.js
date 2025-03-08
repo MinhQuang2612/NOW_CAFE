@@ -247,6 +247,80 @@ app.put("/api/change-password/:userId", async (req, res) => {
   }
 });
 
+// Định nghĩa Schema và Model cho Voucher
+const VoucherSchema = new mongoose.Schema({
+  title: String,
+  description: String,
+  discount: Number,
+  validFrom: Date,
+  validTo: Date,
+  minOrderValue: Number,
+  isHighlighted: Boolean
+});
+
+const Voucher = mongoose.model("Voucher", VoucherSchema, "Voucher");
+
+// API lấy danh sách voucher
+app.get("/api/vouchers", async (req, res) => {
+  try {
+    const vouchers = await Voucher.find({});
+    res.json(vouchers);
+  } catch (error) {
+    console.error("❌ Lỗi API Voucher:", error);
+    res.status(500).json({ message: "Lỗi server", error });
+  }
+});
+
+// API thêm voucher mới
+app.post("/api/vouchers", async (req, res) => {
+  const { title, description, discount, validFrom, validTo, minOrderValue, isHighlighted } = req.body;
+  const newVoucher = new Voucher({
+    title,
+    description,
+    discount,
+    validFrom,
+    validTo,
+    minOrderValue,
+    isHighlighted
+  });
+  try {
+    const savedVoucher = await newVoucher.save();
+    res.status(201).json(savedVoucher);
+  } catch (error) {
+    console.error("❌ Lỗi khi thêm voucher:", error);
+    res.status(500).json({ message: "Lỗi server", error });
+  }
+});
+
+// API cập nhật voucher theo ID
+app.put("/api/vouchers/:id", async (req, res) => {
+  try {
+    const updatedVoucher = await Voucher.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    if (!updatedVoucher) {
+      return res.status(404).json({ message: "Không tìm thấy voucher" });
+    }
+    res.json(updatedVoucher);
+  } catch (error) {
+    console.error("❌ Lỗi API Voucher:", error);
+    res.status(500).json({ message: "Lỗi server", error });
+  }
+});
+
+// API xóa voucher theo ID
+app.delete("/api/vouchers/:id", async (req, res) => {
+  try {
+    const deletedVoucher = await Voucher.findByIdAndDelete(req.params.id);
+    if (!deletedVoucher) {
+      return res.status(404).json({ message: "Không tìm thấy voucher" });
+    }
+    res.json({ message: "Xóa voucher thành công" });
+  } catch (error) {
+    console.error("❌ Lỗi API Voucher:", error);
+    res.status(500).json({ message: "Lỗi server", error });
+  }
+});
+
+
 // Chạy server
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

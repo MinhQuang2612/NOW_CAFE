@@ -36,7 +36,7 @@ export default function App() {
     <Provider store={store}>
       <NavigationContainer>
 
-        <Stack.Navigator initialRouteName="Welcome">
+        <Stack.Navigator initialRouteName="Bill">
 
           <Stack.Screen
             name="Welcome"
