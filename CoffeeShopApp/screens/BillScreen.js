@@ -19,7 +19,7 @@ export default function BillScreen({ navigation, route }) {
   const [selectedVoucher, setSelectedVoucher] = useState(null); // State for selected voucher
 
   // Constants for fees (matching your image in dollars)
-  const DELIVERY_FEE = 0.2; // $0.2
+  const DELIVERY_FEE = 2.0; // $0.2
   const PACKAGING_FEE = 2.0; // $2.0
 
   // Calculate subtotal and total price from selected items, including fees and voucher
