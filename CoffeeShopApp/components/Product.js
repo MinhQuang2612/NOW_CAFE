@@ -19,10 +19,11 @@ export default function Product({ product }) {
   };
 
   const handleAddToCart = () => {
+    // console.log('Toi day roi:');
     Keyboard.dismiss();
     dispatch(setForceBlur(true));
     addToCart();
-    Alert.alert("Thành công", `${product.name} đã được thêm vào giỏ hàng!`);
+    // Alert.alert("Thành công", `${product.name} đã được thêm vào giỏ hàng!`);
   };
 
   return (
@@ -41,7 +42,7 @@ export default function Product({ product }) {
             <TouchableOpacity style={styles.buyButton} onPress={() => navigation.navigate("ProductDetail", { product })}>
               <Text style={styles.buyText}>Buy now!</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleAddToCart}>
+            <TouchableOpacity onPress={() => handleAddToCart()}>
               <AntDesign name="shoppingcart" size={24} color="black" />
             </TouchableOpacity>
             <TouchableOpacity onPress={handleToggleFavorite}>

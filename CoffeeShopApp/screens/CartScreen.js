@@ -53,6 +53,7 @@ export default function CartScreen({ navigation }) {
         return {
           id: item.sanpham_id,
           price: item.price,
+          category: item.category,
           quantity: item.quantity,
           checked: existingCheck ? existingCheck.checked : false,
         };
@@ -70,6 +71,8 @@ export default function CartScreen({ navigation }) {
     setNumberItem(checkedCount);
     setCheckAll(dataCheck.length > 0 && dataCheck.every((item) => item.checked));
   }, [dataCheck]);
+
+  console.log(cartItems);
 
   // Update cartItems lên server khi có thay đổi thực sự
   useEffect(() => {
@@ -96,7 +99,7 @@ export default function CartScreen({ navigation }) {
           />
           <Image source={{ uri: item.image }} style={styles.image} />
           <View>
-            <Text style={styles.categoryText}>Category</Text>
+            <Text style={styles.categoryText}>{item.category}</Text>
             <Text style={styles.name}>
               {item.name.length > 15 ? item.name.slice(0, 15) + "..." : item.name}
             </Text>
@@ -222,7 +225,7 @@ export default function CartScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#EEDCC6", paddingTop: 100 },
+  container: { flex: 1, backgroundColor: "#EEDCC6", paddingTop: 100, paddingBottom: 100 },
   cartList: {
     padding: 20,
     backgroundColor: "#FFF5E9",
