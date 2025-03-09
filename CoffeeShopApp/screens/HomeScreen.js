@@ -55,6 +55,7 @@ useEffect(() => {
   }, [cartItems, userId, dispatch]);
 
   const handleAddToCart = (product) => {
+    console.log('Add:', product);
     dispatch(addToCart({ 
       product: {
         ...product,

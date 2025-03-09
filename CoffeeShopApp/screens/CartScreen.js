@@ -182,7 +182,7 @@ export default function CartScreen({ navigation }) {
 
             if (selectedItems.length === 0) return;
 
-            navigation.navigate("Bill", { selectedItems, totalAmount });
+            navigation.navigate("BillDetail", { selectedItems, totalAmount });
           }}
         >
           <Text style={styles.checkoutText}>
@@ -342,8 +342,8 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   imageOther: {
-    width: 160,
-    height: 160,
+    width: 140,
+    height: 120,
     borderRadius: 10,
   },
   otherItem: {

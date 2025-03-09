@@ -41,6 +41,7 @@ export default function ProfileScreen({ navigation }) {
     try {
       const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/user/${userId}`);
       const data = await response.json();
+      console.log('data', data);
       if (data.success) {
         const { name, phoneNumber, address, points, email } = data.user;
         const [firstName, ...rest] = name.split(" ");

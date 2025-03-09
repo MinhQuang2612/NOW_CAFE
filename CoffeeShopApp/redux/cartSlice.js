@@ -46,6 +46,7 @@ export const updateCartItems = createAsyncThunk(
       const data = await response.json();
       const updatedCartItems = Array.isArray(data.cart?.SanPham) ? data.cart.SanPham : [];
       return updatedCartItems.map((item) => ({
+
         sanpham_id: item.sanpham_id || "",
         name: item.name || "Unknown",
         price: item.price || 0,

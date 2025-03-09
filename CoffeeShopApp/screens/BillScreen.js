@@ -18,76 +18,76 @@ export default function BillScreen({ navigation, route }) {
   const [userInfo, setUserInfo] = useState(null);
   const [selectedVoucher, setSelectedVoucher] = useState(null); // State for selected voucher
 
-  // Constants for fees (matching your image in dollars)
+  // // Constants for fees (matching your image in dollars)
   const DELIVERY_FEE = 2.0; // $0.2
   const PACKAGING_FEE = 2.0; // $2.0
 
-  // Calculate subtotal and total price from selected items, including fees and voucher
-  useEffect(() => {
-    let subtotal = selectedItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  // // Calculate subtotal and total price from selected items, including fees and voucher
+  // useEffect(() => {
+  //   let subtotal = selectedItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
     
-    // Handle voucher logic: check for fixed discount, percentage discount, or free shipping
-    let voucherDiscount = 0;
-    let isFreeShipping = false;
-    if (selectedVoucher) {
-      if (selectedVoucher.discount) {
-        voucherDiscount = selectedVoucher.discount; // Fixed discount in dollars (e.g., $50)
-      } else if (selectedVoucher.percentageDiscount) {
-        voucherDiscount = (subtotal * (selectedVoucher.percentageDiscount / 100)); // Percentage discount (e.g., 20% of subtotal)
-      }
-      if (selectedVoucher.isFreeShipping) {
-        isFreeShipping = true; // If voucher provides free shipping, set delivery fee to 0
-      }
-    }
+  //   // Handle voucher logic: check for fixed discount, percentage discount, or free shipping
+  //   let voucherDiscount = 0;
+  //   let isFreeShipping = false;
+  //   if (selectedVoucher) {
+  //     if (selectedVoucher.discount) {
+  //       voucherDiscount = selectedVoucher.discount; // Fixed discount in dollars (e.g., $50)
+  //     } else if (selectedVoucher.percentageDiscount) {
+  //       voucherDiscount = (subtotal * (selectedVoucher.percentageDiscount / 100)); // Percentage discount (e.g., 20% of subtotal)
+  //     }
+  //     if (selectedVoucher.isFreeShipping) {
+  //       isFreeShipping = true; // If voucher provides free shipping, set delivery fee to 0
+  //     }
+  //   }
 
-    // Calculate final total with fees and voucher (in dollars)
-    const effectiveDeliveryFee = isFreeShipping ? 0 : DELIVERY_FEE;
-    const finalTotal = subtotal + effectiveDeliveryFee + PACKAGING_FEE - voucherDiscount;
-    setTotal(finalTotal >= 0 ? finalTotal : 0); // Ensure total is not negative
-  }, [selectedItems, selectedVoucher]);
+  //   // Calculate final total with fees and voucher (in dollars)
+  //   const effectiveDeliveryFee = isFreeShipping ? 0 : DELIVERY_FEE;
+  //   const finalTotal = subtotal + effectiveDeliveryFee + PACKAGING_FEE - voucherDiscount;
+  //   setTotal(finalTotal >= 0 ? finalTotal : 0); // Ensure total is not negative
+  // }, [selectedItems, selectedVoucher]);
 
-  // Fetch user info
-  useEffect(() => {
-    if (userId) {
-      console.log("Fetching user info for userId:", userId);
-      fetch(`http://localhost:5001/api/user/${userId}`)
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error(`HTTP error! Status: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then((data) => {
-          console.log("API Response:", data);
-          if (data.success && data.user) {
-            setUserInfo(data.user);
-          } else {
-            console.log("Không tìm thấy người dùng hoặc dữ liệu không hợp lệ");
-            Alert.alert("Error", "Không thể tải thông tin người dùng. Vui lòng kiểm tra kết nối hoặc thử lại.");
-          }
-        })
-        .catch((error) => {
-          console.error("❌ Lỗi lấy thông tin user:", error);
-          Alert.alert("Error", "Lỗi kết nối đến máy chủ. Vui lòng thử lại.");
-        });
-    }
-  }, [userId]);
+  // // Fetch user info
+  // useEffect(() => {
+  //   if (userId) {
+  //     console.log("Fetching user info for userId:", userId);
+  //     fetch(`http://localhost:5001/api/user/${userId}`)
+  //       .then((res) => {
+  //         if (!res.ok) {
+  //           throw new Error(`HTTP error! Status: ${res.status}`);
+  //         }
+  //         return res.json();
+  //       })
+  //       .then((data) => {
+  //         console.log("API Response:", data);
+  //         if (data.success && data.user) {
+  //           setUserInfo(data.user);
+  //         } else {
+  //           console.log("Không tìm thấy người dùng hoặc dữ liệu không hợp lệ");
+  //           Alert.alert("Error", "Không thể tải thông tin người dùng. Vui lòng kiểm tra kết nối hoặc thử lại.");
+  //         }
+  //       })
+  //       .catch((error) => {
+  //         console.error("❌ Lỗi lấy thông tin user:", error);
+  //         Alert.alert("Error", "Lỗi kết nối đến máy chủ. Vui lòng thử lại.");
+  //       });
+  //   }
+  // }, [userId]);
 
-  // Handle voucher selection (received from VoucherScreen)
-  useEffect(() => {
-    if (route.params?.voucher) {
-      setSelectedVoucher(route.params.voucher);
-    }
-  }, [route.params?.voucher]);
+  // // Handle voucher selection (received from VoucherScreen)
+  // useEffect(() => {
+  //   if (route.params?.voucher) {
+  //     setSelectedVoucher(route.params.voucher);
+  //   }
+  // }, [route.params?.voucher]);
 
-  // Navigate to VoucherScreen to select a voucher
-  const handleSelectVoucher = () => {
-    navigation.navigate("Voucher", {
-      onSelectVoucher: (voucher) => {
-        setSelectedVoucher(voucher);
-      },
-    });
-  };
+  // // Navigate to VoucherScreen to select a voucher
+  // const handleSelectVoucher = () => {
+  //   navigation.navigate("Voucher", {
+  //     onSelectVoucher: (voucher) => {
+  //       setSelectedVoucher(voucher);
+  //     },
+  //   });
+  // };
 
   return (
     <View style={styles.container}>
@@ -99,7 +99,7 @@ export default function BillScreen({ navigation, route }) {
           <Text style={styles.headerTitle}>Your Order</Text>
         </View>
 
-        {userInfo ? (
+        {/* {userInfo ? (
           <View style={styles.sectionContainer}>
             <View style={styles.addressContainer}>
               <Image source={require("../assets/icons/delivery.png")} style={styles.icon} />
@@ -116,7 +116,7 @@ export default function BillScreen({ navigation, route }) {
           <Text style={{ color: "red", textAlign: "center", marginVertical: 10 }}>
             Không tải được thông tin người dùng
           </Text>
-        )}
+        )} */}
 
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Delivery</Text>
@@ -128,7 +128,7 @@ export default function BillScreen({ navigation, route }) {
 
         <TouchableOpacity
           style={styles.sectionContainer}
-          onPress={handleSelectVoucher}
+          // onPress={handleSelectVoucher}
         >
           <Text style={styles.sectionTitle}>Voucher</Text>
           <View style={styles.voucherOption}>
