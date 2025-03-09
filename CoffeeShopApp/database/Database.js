@@ -69,39 +69,51 @@ app.post("/api/login", async (req, res) => {
 
 const AccountGoogleSchema = new mongoose.Schema({
   googleID: { type: String, required: true },
-  email: { type: String, required: true},
+  email: { type: String, required: true },
   name: { type: String, required: true },
   userId: { type: String, unique: true },
 });
 
-const AccountGoogle = mongoose.model("AccountGoogle", AccountGoogleSchema);
+// Chỉ định rõ collection name là "AccountGoogle"
+const AccountGoogle = mongoose.model("AccountGoogle", AccountGoogleSchema, "AccountGoogle");
 // API đăng nhập tài khoản Google
 app.post("/api/auth/google", async (req, res) => {
   console.log("📩 Request body nhận được:", req.body);
   const { email, name, uid } = req.body;
   const googleID = uid;
   console.log("🔍 Google ID:", googleID);
+  const requestEmail = req.body.gmail;
+  console.log("🔍 Email từ request (trước chuẩn hóa):", requestEmail);
+  const normalizedEmail = requestEmail ? requestEmail.toLowerCase().trim() : null;
+  console.log("🔍 Email sau khi chuẩn hóa:", normalizedEmail);
 
   try {
-    let user = await AccountGoogle.findOne({ googleID });
+    let user = await AccountGoogle.findOne({ googleID: uid });
 
     if (!user) {
-      const count = await AccountGoogle.countDocuments();
-      const newUserId = `user${String(count + 1).padStart(4, "0")}`; // Sửa thành `user0001`
+      console.log("❌ Không tìm thấy người dùng với email:", normalizedEmail);
+      // Tìm userId lớn nhất hiện có
+      const lastUser = await AccountGoogle.findOne().sort({ userId: -1 });
+      let count = 0;
+      if (lastUser && lastUser.userId) {
+        const match = lastUser.userId.match(/\d+$/);
+        count = match ? parseInt(match[0]) : 0;
+      }
+      const newUserId = `user${String(count + 1).padStart(4, "0")}`; // Tạo userId mới
       user = new AccountGoogle({
-        googleID: req.body.uid,
-        email: req.body.gmail,
+        googleID: googleID,
+        email: normalizedEmail,
         name: req.body.username,
         userId: newUserId,
       });
       await user.save();
       console.log("🆕 Người dùng mới đã được tạo:", user);
 
-      // Tạo bản ghi trong collection Users với định dạng userId mới
+      // Tạo bản ghi trong collection Users
       const newUserInUsers = new User({
-        user_id: newUserId, // Sử dụng newUserId
+        user_id: newUserId,
         name: req.body.username,
-        email: req.body.gmail,
+        email: normalizedEmail,
         phoneNumber: "",
         address: "",
         points: 0,
@@ -110,6 +122,11 @@ app.post("/api/auth/google", async (req, res) => {
       console.log("🆕 Đã tạo user trong Users:", newUserInUsers);
     } else {
       console.log("✅ Người dùng đã tồn tại:", user);
+      if (user.googleID !== googleID) {
+        user.googleID = googleID;
+        await user.save();
+        console.log("🔄 Đã cập nhật googleID:", user);
+      }
     }
 
     res.json({ success: true, user, userId: user.userId });
