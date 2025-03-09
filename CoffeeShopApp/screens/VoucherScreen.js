@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 
-const API_URL = "http://localhost:5001/api/vouchers";
+const API_URL = `${process.env.EXPO_PUBLIC_API_URL}/api/vouchers`;
 
 export default function VoucherScreen({ navigation }) {
   const [vouchers, setVouchers] = useState([]);
@@ -43,7 +43,11 @@ export default function VoucherScreen({ navigation }) {
         styles.voucherCard, 
         selectedVoucher === item._id && styles.selectedCard
       ]}
-      onPress={() => setSelectedVoucher(item._id)}
+      // onPress={() => setSelectedVoucher(item._id)}
+      onPress={() => {
+        setSelectedVoucher(item._id);
+        navigation.navigate('BillDetail', { voucher: item });
+      }}
     >
       <View style={styles.voucherRow}>
         <Image 

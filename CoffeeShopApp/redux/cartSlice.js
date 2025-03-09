@@ -66,6 +66,7 @@ export const updateCartItems = createAsyncThunk(
 
 const initialState = {
   cartItems: [],
+  selectedItem: [],
   totalAmount: 0,
 };
 
@@ -116,6 +117,29 @@ const cartSlice = createSlice({
       state.cartItems = [];
       state.totalAmount = 0;
     },
+
+    addToSelectedItem: (state, action) => {
+      const {listItem } = action.payload;
+
+      // Mamg selectedItem chứa sản phẩm đã chọn trong mảng listItem
+      state.selectedItem = listItem.map((item) => {
+        return {
+          sanpham_id: item.sanpham_id || "",
+          name: item.name || "Unknown",
+          category: item.category || "Unknown",
+          price: item.price || 0,
+          quantity: item.quantity || 0,
+          image: item.image || "",
+        };
+
+      });
+     
+    },
+    removeFromSelectedItem: (state, action) => {
+      state.selectedItem = state.selectedItem.filter(
+        (item) => item.sanpham_id !== action.payload
+      );
+    },
   },
   extraReducers: (builder) => {
     // Xử lý fetchCartItems
@@ -151,5 +175,8 @@ const cartSlice = createSlice({
   },
 });
 
-export const { addToCart, removeFromCart, clearCart } = cartSlice.actions;
+export const { addToCart, removeFromCart, clearCart ,
+
+  addToSelectedItem, removeFromSelectedItem
+} = cartSlice.actions;
 export default cartSlice.reducer;

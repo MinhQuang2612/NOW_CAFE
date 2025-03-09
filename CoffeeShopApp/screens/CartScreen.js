@@ -15,6 +15,7 @@ import {
   fetchCartItems,
   addToCart,
   updateCartItems,
+  addToSelectedItem,
 } from "../redux/cartSlice";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
@@ -185,7 +186,11 @@ export default function CartScreen({ navigation }) {
 
             if (selectedItems.length === 0) return;
 
-            navigation.navigate("BillDetail", { selectedItems, totalAmount });
+            console.log(selectedItems);
+            dispatch(addToSelectedItem
+              ({ listItem: selectedItems }));
+
+            navigation.navigate("BillDetail", {totalAmount });
           }}
         >
           <Text style={styles.checkoutText}>

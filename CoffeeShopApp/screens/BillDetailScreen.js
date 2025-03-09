@@ -14,16 +14,20 @@ import { fetchUserDetails } from "../redux/userSlice";
 
 const BillDetail = ({ navigation, route }) => {
   const user = useSelector((state) => state.user.user);
-  const { selectedItems, userId } = route.params || {
-    selectedItems: [],
-    userId: null,
-  };
+  // const { selectedItems, userId } = route.params || {
+  //   selectedItems: [],
+  //   userId: null,
+  // };
+  const selectedItems = useSelector((state) => state.cart.selectedItem);
+  console.log("Selected Items", selectedItems);
 
-  const [paymentSelected, setpaymentSelected] = useState(false)
+  const [paymentSelected, setpaymentSelected] = useState(false);
   console.log("Selected Item", selectedItems);
   // console.log("user", user);
   const dispatch = useDispatch();
   // console.log('userData', user._id);
+
+  const {voucher} = route.params || {voucher: null};
 
   useEffect(() => {
     if (user && user.userId) {
@@ -87,31 +91,43 @@ const BillDetail = ({ navigation, route }) => {
     );
   };
   // Voucher Item
-  const VoucherItem = () => {
+  const VoucherItem = ({voucher}) => {
     return (
-      <View style={styles.voucherDetailContainer}>
+      <TouchableOpacity style={styles.voucherDetailContainer}
+        onPress={() => navigation.navigate("Voucher")}
+      >
         <Image source={require("../assets/images/voucher.png")} />
         <View>
           <Text style={styles.voucherText}>
-            Free ship: <Text>HAPPY DAY</Text>
+            {voucher ? voucher.title : "Voucher"}
           </Text>
-          <Text>Description</Text>
+          <Text>
+            {
+            voucher ? (
+              voucher.description.length > 30 ?
+              voucher.description.substring(0, 30) + "..."
+              : voucher.description
+
+             ) : "Description"
+            }
+
+
+          </Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
   // Payment Item
   const PaymentItem = () => {
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={
-          paymentSelected ? [styles.paymentContainer, {backgroundColor: '#967259'}]:
-            styles.paymentContainer
-          
-
+          paymentSelected
+            ? [styles.paymentContainer, { backgroundColor: "#967259" }]
+            : styles.paymentContainer
         }
-        onPress={()=>paymentHandle()}
+        onPress={() => paymentHandle()}
       >
         <Image source={require("../assets/images/payment.png")} />
         <Text>Cash on Delivery</Text>
@@ -120,9 +136,9 @@ const BillDetail = ({ navigation, route }) => {
   };
   // Xử lý
 
-  const paymentHandle = ()=>{
-    setpaymentSelected(!paymentSelected)
-  }
+  const paymentHandle = () => {
+    setpaymentSelected(!paymentSelected);
+  };
   return (
     <View style={styles.container}>
       {/* HeadHead */}
@@ -135,9 +151,12 @@ const BillDetail = ({ navigation, route }) => {
         <Address user={user} />
         {/* Item */}
         <View style={styles.itemContainer}>
-          {selectedItems.map((item) => (
-            <Item item={item} key={item.id} />
-          ))}
+          {
+            selectedItems.length > 0 ? selectedItems.map((item, index) => (
+              <Item item={item} key={index} />
+            )) : <Text>No item</Text>
+          }
+
           {/* Order Recoment */}
           <View style={styles.otherContainer}>
             <Text style={styles.ortherTitle}>Order drinks we recoment</Text>
@@ -179,7 +198,7 @@ const BillDetail = ({ navigation, route }) => {
         {/* Voucher */}
         <View style={styles.voucherContainer}>
           <Text style={styles.deliveryText}>Voucher</Text>
-          <VoucherItem />
+          <VoucherItem voucher={voucher} />
         </View>
 
         {/* Payment */}
@@ -347,12 +366,12 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 10,
   },
-  paymentContainer:{
-    flexDirection: 'row',
+  paymentContainer: {
+    flexDirection: "row",
     gap: 10,
-    backgroundColor: '#EEDCC6',
+    backgroundColor: "#EEDCC6",
     padding: 10,
     borderRadius: 10,
-    marginVertical: 10
-  }
+    marginVertical: 10,
+  },
 });
