@@ -55,6 +55,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#EADCC6", // Màu viền mặc định
     marginHorizontal: 20,
+    marginTop: 20,
   },
   focused: {
     borderColor: "#8B5E3C", // Màu viền khi focus (tùy chỉnh)

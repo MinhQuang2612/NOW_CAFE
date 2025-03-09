@@ -104,7 +104,7 @@ export default function Navbar() {
               style={styles.menuItem}
               onPress={() => {
                 dispatch(setUser(null)); // Xóa thông tin người dùng khi logout
-                navigation.navigate("SignIn");
+                navigation.navigate("Login");
               }}
             >
               <Feather name="log-out" size={24} color="black" />
