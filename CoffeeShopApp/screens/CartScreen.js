@@ -73,7 +73,7 @@ export default function CartScreen({ navigation }) {
     setCheckAll(dataCheck.length > 0 && dataCheck.every((item) => item.checked));
   }, [dataCheck]);
 
-  console.log(cartItems);
+  // console.log(cartItems);
 
   // Update cartItems lên server khi có thay đổi thực sự
   useEffect(() => {
@@ -127,7 +127,7 @@ export default function CartScreen({ navigation }) {
         </View>
         <View style={styles.inputContainer}>
           <Text>Note</Text>
-          <TextInput placeholder="Aaabbcc" style={styles.input} />
+          <TextInput placeholder="note" style={styles.input} />
           <TouchableOpacity>
             <AntDesign name="edit" size={22} color="black" />
           </TouchableOpacity>
@@ -186,7 +186,7 @@ export default function CartScreen({ navigation }) {
 
             if (selectedItems.length === 0) return;
 
-            console.log(selectedItems);
+           // console.log(selectedItems);
             dispatch(addToSelectedItem
               ({ listItem: selectedItems }));
 
