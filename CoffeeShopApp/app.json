@@ -4,7 +4,7 @@
     "slug": "CoffeeShopApp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icons/apple.png",
+    "icon": "./assets/images/capu.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "scheme": "coffeeshopapp",
