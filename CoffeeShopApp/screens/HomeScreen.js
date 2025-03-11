@@ -55,13 +55,14 @@ useEffect(() => {
   }, [cartItems, userId, dispatch]);
 
   const handleAddToCart = (product) => {
-    dispatch(addToCart({ 
-      product: {
-        ...product,
-        userId // Include userId with the product
-      }, 
-      quantity: 1 
-    }));
+    // console.log('Add:', product);
+    // dispatch(addToCart({ 
+    //   product: {
+    //     ...product,
+    //     userId // Include userId with the product
+    //   }, 
+    //   quantity: 1 
+    // }));
     Alert.alert("Success", `${product.name} has been added to cart!`);
   };
 
@@ -100,6 +101,7 @@ useEffect(() => {
               <Text style={styles.loadingText}>Đang tải sản phẩm...</Text>
             ) : (
               filteredProducts.map((product) => (
+                // console.log('Product:', product),
                 <Product
                   key={product.sanpham_id} 
                   product={product} 

@@ -28,6 +28,7 @@ import ReviewScreens from "./screens/ReviewScreen.js";
 import ReviewDetailScreen from "./screens/ReviewDetailScreen.js";
 import BillScreen from "./screens/BillScreen.js";
 import SearchOrderScreen from "./screens/SearchOrderScreen.js";
+import BillDetailBScreen from "./screens/BillDetailScreen.js";
 
 const Stack = createStackNavigator();
 
@@ -35,9 +36,7 @@ export default function App() {
   return (
     <Provider store={store}>
       <NavigationContainer>
-
         <Stack.Navigator initialRouteName="Welcome">
-
           <Stack.Screen
             name="Welcome"
             component={WelcomeScreen}
@@ -183,6 +182,12 @@ export default function App() {
           <Stack.Screen
             name="SearchOrder"
             component={SearchOrderScreen}
+            options={{ headerShown: false }}
+          />
+
+          <Stack.Screen
+            name="BillDetail"
+            component={BillDetailBScreen}
             options={{ headerShown: false }}
           />
         </Stack.Navigator>

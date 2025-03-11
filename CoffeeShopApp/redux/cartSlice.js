@@ -14,10 +14,14 @@ export const fetchCartItems = createAsyncThunk(
         throw new Error("Failed to fetch cart items");
       }
       const data = await response.json();
+      console.log("🛒 Fetched Cart Items:", data.cart)
       const cartItems = Array.isArray(data.cart?.SanPham) ? data.cart.SanPham : [];
+      // console.log("🛒 Fetched Cart Items:", cartItems);
       return cartItems.map((item) => ({
+        
         sanpham_id: item.sanpham_id || "",
         name: item.name || "Unknown",
+        category: item.category || "Unknown",
         price: item.price || 0,
         quantity: item.quantity || 0,
         image: item.image || "",
@@ -46,8 +50,10 @@ export const updateCartItems = createAsyncThunk(
       const data = await response.json();
       const updatedCartItems = Array.isArray(data.cart?.SanPham) ? data.cart.SanPham : [];
       return updatedCartItems.map((item) => ({
+
         sanpham_id: item.sanpham_id || "",
         name: item.name || "Unknown",
+        category: item.category || "Unknown",
         price: item.price || 0,
         quantity: item.quantity || 0,
         image: item.image || "",
@@ -60,6 +66,7 @@ export const updateCartItems = createAsyncThunk(
 
 const initialState = {
   cartItems: [],
+  selectedItem: [],
   totalAmount: 0,
 };
 
@@ -69,7 +76,7 @@ const cartSlice = createSlice({
   reducers: {
     addToCart: (state, action) => {
       const { product, quantity } = action.payload;
-      console.log("🛒 Add to Cart:", product, quantity);
+      // console.log("🛒 Add to Cart:", product, quantity);
       const existingItem = state.cartItems.find(
         (item) => item.sanpham_id === product.sanpham_id
       );
@@ -85,6 +92,7 @@ const cartSlice = createSlice({
         state.cartItems.push({
           ...product,
           quantity: quantity,
+          category: product.category || "Unknown",
           price: product.price || 0,
           name: product.name || "Unknown",
           image: product.image || "",
@@ -109,6 +117,29 @@ const cartSlice = createSlice({
       state.cartItems = [];
       state.totalAmount = 0;
     },
+
+    addToSelectedItem: (state, action) => {
+      const {listItem } = action.payload;
+
+      // Mamg selectedItem chứa sản phẩm đã chọn trong mảng listItem
+      state.selectedItem = listItem.map((item) => {
+        return {
+          sanpham_id: item.sanpham_id || "",
+          name: item.name || "Unknown",
+          category: item.category || "Unknown",
+          price: item.price || 0,
+          quantity: item.quantity || 0,
+          image: item.image || "",
+        };
+
+      });
+     
+    },
+    removeFromSelectedItem: (state, action) => {
+      state.selectedItem = state.selectedItem.filter(
+        (item) => item.sanpham_id !== action.payload
+      );
+    },
   },
   extraReducers: (builder) => {
     // Xử lý fetchCartItems
@@ -119,12 +150,12 @@ const cartSlice = createSlice({
           (sum, item) => sum + (item?.price || 0) * (item?.quantity || 0),
           0
         );
-        console.log("🛒 Fetched Cart Items:", action.payload);
+        // console.log("🛒 Fetched Cart Items:", action.payload);
       })
       .addCase(fetchCartItems.rejected, (state, action) => {
         state.cartItems = []; // Đặt cartItems về rỗng khi thất bại
         state.totalAmount = 0;
-        console.error("🛒 Fetch Error:", action.payload || "Failed to fetch cart items");
+        // console.error("🛒 Fetch Error:", action.payload || "Failed to fetch cart items");
       })
 
       // Xử lý updateCartItems
@@ -134,15 +165,18 @@ const cartSlice = createSlice({
           (sum, item) => sum + (item?.price || 0) * (item?.quantity || 0),
           0
         );
-        console.log("🛒 Updated Cart Items:", action.payload);
+        // console.log("🛒 Updated Cart Items:", action.payload);
       })
       .addCase(updateCartItems.rejected, (state, action) => {
         state.cartItems = []; // Đặt cartItems về rỗng khi thất bại
         state.totalAmount = 0;
-        console.error("🛒 Update Error:", action.payload || "Failed to update cart");
+        // console.error("🛒 Update Error:", action.payload || "Failed to update cart");
       });
   },
 });
 
-export const { addToCart, removeFromCart, clearCart } = cartSlice.actions;
+export const { addToCart, removeFromCart, clearCart ,
+
+  addToSelectedItem, removeFromSelectedItem
+} = cartSlice.actions;
 export default cartSlice.reducer;
