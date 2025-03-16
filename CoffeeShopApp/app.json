@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/capu.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false, // Tắt New Architecture
     "scheme": "coffeeshopapp",
     "splash": {
       "image": "./assets/images/capu.png",

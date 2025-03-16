@@ -19,20 +19,18 @@ import Navbar from "../components/Navbar";
 
 const API_URL = `${process.env.EXPO_PUBLIC_API_URL}/api/orders`;
 
-const BillDetail = ({ navigation, route }) => { 
+const BillDetail = ({ navigation, route }) => {
   React.useLayoutEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
   const user = useSelector((state) => state.user.user);
-  const cartUserId = useSelector((state) => state.cart.cartUserId); // Không thêm "guest" mặc định ngay
+  const cartUserId = useSelector((state) => state.cart.cartUserId);
   const selectedItems = useSelector((state) => state.cart.selectedItem) || [];
   const cartItems = useSelector((state) => state.cart.cartItems) || [];
   const [paymentSelected, setPaymentSelected] = useState(1); // 1: Thanh toán khi nhận hàng
   const dispatch = useDispatch();
   const { voucher } = route.params || { voucher: null };
-
-  // Xác định userId, fallback thành "guest" nếu không có cartUserId
   const userId = cartUserId || "guest";
 
   useEffect(() => {
@@ -43,25 +41,19 @@ const BillDetail = ({ navigation, route }) => {
     console.log("Selected Items:", selectedItems);
     console.log("Cart Items:", cartItems);
 
-    // Chỉ điều hướng nếu userId là "guest" và không có cartUserId hợp lệ
     if (userId === "guest" && !cartUserId) {
       console.warn("No valid userId found, redirecting to Login");
       Alert.alert("Lỗi", "Vui lòng đăng nhập để đặt hàng!", [
         { text: "OK", onPress: () => navigation.navigate("Login") },
       ]);
-      return;
-    }
-
-    // Gọi fetchUserDetails để lấy thông tin user (sử dụng userId từ cart)
-    if (!user && userId !== "guest") {
+    } else if (!user && userId !== "guest") {
       dispatch(fetchUserDetails(userId))
         .unwrap()
         .catch((error) => {
           console.error("Fetch User Error in useEffect:", error.message);
-          // Không điều hướng, chỉ log lỗi
         });
     }
-  }, [user, cartUserId, selectedItems, cartItems, dispatch, navigation]);
+  }, [user, cartUserId, userId, selectedItems, cartItems, dispatch, navigation]);
 
   const calculatePaymentDetails = () => {
     const deliveryFee = 2.0;
@@ -132,8 +124,7 @@ const BillDetail = ({ navigation, route }) => {
                 dateCreated: new Date().toISOString(),
                 tongTien: parseFloat(paymentDetails.total),
               },
-              paymentMethod:
-                paymentSelected === 0 ? "Ví điện tử" : "Thanh toán khi nhận hàng",
+              paymentMethod: paymentSelected === 0 ? "Ví điện tử" : "Thanh toán khi nhận hàng",
               status: "pending",
             };
 
@@ -144,6 +135,7 @@ const BillDetail = ({ navigation, route }) => {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
+                  ...(user?.token && { Authorization: `Bearer ${user.token}` }),
                 },
                 body: JSON.stringify(orderData),
               });
@@ -152,6 +144,12 @@ const BillDetail = ({ navigation, route }) => {
               console.log("API Response:", data);
 
               if (!response.ok) {
+                if (response.status === 401) {
+                  Alert.alert("Lỗi", "Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!", [
+                    { text: "OK", onPress: () => navigation.navigate("Login") },
+                  ]);
+                  return;
+                }
                 throw new Error(
                   `HTTP error! Status: ${response.status}, Message: ${
                     data.message || "Unknown error"
@@ -177,18 +175,33 @@ const BillDetail = ({ navigation, route }) => {
     );
   };
 
-  const Address = () => (
-    <View style={styles.addressContainer}>
-      <Ionicons name="location" size={40} color="#FB452D" />
-      <View>
-        <View style={styles.nameContainer}>
-          <Text style={styles.nameText}>{user.name|| "Tên người dùng"}</Text>
-          <Text>(+84){user?.phoneNumber || "0123456789"}</Text>
+  const Address = () => {
+    const user = useSelector((state) => state.user.user);
+    const dispatch = useDispatch();
+
+    useEffect(() => {
+      if (userId !== "guest" && (!user || !user.name || !user.phoneNumber || !user.address)) {
+        dispatch(fetchUserDetails(userId))
+          .unwrap()
+          .catch((error) => {
+            console.error("Fetch User Error in Address:", error.message);
+          });
+      }
+    }, [user, userId, dispatch]);
+
+    return (
+      <View style={styles.addressContainer}>
+        <Ionicons name="location" size={40} color="#FB452D" />
+        <View>
+          <View style={styles.nameContainer}>
+            <Text style={styles.nameText}>{user?.name || "Tên người dùng"}</Text>
+            <Text>(+84){user?.phoneNumber || "0123456789"}</Text>
+          </View>
+          <Text>{user?.address || "Địa chỉ mặc định"}</Text>
         </View>
-        <Text>{user?.address || "Địa chỉ mặc định"}</Text>
       </View>
-    </View>
-  );
+    );
+  };
 
   const Item = ({ item }) => (
     <View style={{ marginTop: 10 }}>
