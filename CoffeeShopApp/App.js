@@ -26,7 +26,6 @@ import RecentlyOrderScreen from "./screens/RecentlyOtherScreen.js";
 import OrderDetailScreens from "./screens/OderDetailScreen.js";
 import ReviewScreens from "./screens/ReviewScreen.js";
 import ReviewDetailScreen from "./screens/ReviewDetailScreen.js";
-import BillScreen from "./screens/BillScreen.js";
 import SearchOrderScreen from "./screens/SearchOrderScreen.js";
 import BillDetailBScreen from "./screens/BillDetailScreen.js";
 
@@ -170,12 +169,6 @@ export default function App() {
           <Stack.Screen
             name="ReviewDetail"
             component={ReviewDetailScreen}
-            options={{ headerShown: false }}
-          />
-
-          <Stack.Screen
-            name="Bill"
-            component={BillScreen}
             options={{ headerShown: false }}
           />
 

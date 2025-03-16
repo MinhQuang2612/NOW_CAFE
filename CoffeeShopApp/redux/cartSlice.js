@@ -150,11 +150,13 @@ const cartSlice = createSlice({
           (sum, item) => sum + (item?.price || 0) * (item?.quantity || 0),
           0
         );
+        state.cartUserId = action.payload.User?.User_id || "guest"; // Lưu userId từ cart
         // console.log("🛒 Fetched Cart Items:", action.payload);
       })
       .addCase(fetchCartItems.rejected, (state, action) => {
         state.cartItems = []; // Đặt cartItems về rỗng khi thất bại
         state.totalAmount = 0;
+        state.cartUserId = "guest";
         // console.error("🛒 Fetch Error:", action.payload || "Failed to fetch cart items");
       })
 

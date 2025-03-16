@@ -199,7 +199,6 @@ export default function CartScreen({ navigation }) {
         </TouchableOpacity>
         <View style={styles.otherContainer}>
           <Text style={styles.otherText}>Other drinks you may like</Text>
-          <Text>See all</Text>
         </View>
         <View style={styles.otherItemContainer}>
           <View>

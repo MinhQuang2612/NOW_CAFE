@@ -452,6 +452,61 @@ app.delete("/api/vouchers/:id", async (req, res) => {
   }
 });
 
+// Định nghĩa Schema và Model cho Orders
+const OrderSchema = new mongoose.Schema({
+  hoadon_id: { type: String, required: true, unique: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // Tham chiếu đến Users collection
+  ChiTietHoaDon: {
+    type: Object,
+    required: true,
+    schema: {
+      SanPham: [
+        {
+          product_id: String,
+          name: String,
+          quantity: Number,
+          price: Number,
+        },
+      ],
+      dateCreated: { type: Date, default: Date.now },
+      tongTien: Number,
+    },
+  },
+  paymentMethod: { type: String, required: true },
+  status: { type: String, default: "pending" },
+});
+const Order = mongoose.model("Order", OrderSchema, "Orders");
+
+// API để tạo đơn hàng mới
+app.post("/api/orders", async (req, res) => {
+  const { hoadon_id, user, ChiTietHoaDon, paymentMethod, status } = req.body;
+
+  console.log("Received order data:", req.body); // Log dữ liệu nhận được
+
+  try {
+    const newOrder = new Order({
+      hoadon_id,
+      user,
+      ChiTietHoaDon,
+      paymentMethod,
+      status,
+    });
+    const savedOrder = await newOrder.save();
+
+    // Xóa các món đã đặt khỏi giỏ hàng
+    await Cart.findOneAndUpdate(
+      { "User.User_id": user.User_id },
+      { $set: { SanPham: [], totalPrice: 0 } },
+      { new: true }
+    );
+
+    res.status(201).json({ success: true, order: savedOrder });
+  } catch (error) {
+    console.error("❌ Lỗi khi tạo đơn hàng:", error);
+    res.status(500).json({ success: false, message: "Lỗi server", error: error.message });
+  }
+});
+
 
 // Chạy server
 // const PORT = process.env.PORT || 5001;
