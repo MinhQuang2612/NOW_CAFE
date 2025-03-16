@@ -20,46 +20,40 @@ import Navbar from "../components/Navbar";
 const API_URL = `${process.env.EXPO_PUBLIC_API_URL}/api/orders`;
 
 const BillDetail = ({ navigation, route }) => {
-  React.useLayoutEffect(() => { 
+  React.useLayoutEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
   const user = useSelector((state) => state.user.user);
   const selectedItems = useSelector((state) => state.cart.selectedItem) || [];
   const cartItems = useSelector((state) => state.cart.cartItems) || [];
-  const [paymentSelected, setPaymentSelected] = useState(1); // 1: Thanh toán khi nhận hàng
+  const [paymentSelected, setPaymentSelected] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
   const dispatch = useDispatch();
   const { voucher } = route.params || { voucher: null };
   const userId = user?.user_id || "guest";
 
   useEffect(() => {
-    console.log("API_URL:", API_URL);
-    console.log("User from Redux:", user);
-    console.log("UserId (final):", userId);
-    console.log("Selected Items:", selectedItems);
-    console.log("Cart Items:", cartItems);
+    console.log("User in BillDetail:", user);
+    console.log("UserId in BillDetail:", userId);
 
-    if (userId === "guest") {
-      console.warn("No valid userId found, redirecting to Login");
-      Alert.alert("Lỗi", "Vui lòng đăng nhập để đặt hàng!", [
-        { text: "OK", onPress: () => navigation.navigate("Login") },
-      ]);
-    } else {
-      // Fetch cart items khi userId hợp lệ
-      dispatch(fetchCartItems({ userId }))
-        .unwrap()
-        .catch((error) => {
-          console.error("Fetch Cart Error in useEffect:", error.message);
-        });
-      if (!user || !user.name || !user.phoneNumber || !user.address) {
-        dispatch(fetchUserDetails(userId))
-          .unwrap()
-          .catch((error) => {
-            console.error("Fetch User Error in useEffect:", error.message);
-          });
-      }
-    }
-  }, [user, userId, selectedItems, cartItems, dispatch, navigation]);
+    // Tải cartItems nếu cần
+    dispatch(fetchCartItems({ userId }));
+    setIsLoading(false);
+  }, [userId, dispatch, navigation]);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <Navbar />
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <Text>Đang tải...</Text>
+        </View>
+        <Footer style={styles.fixedFooter} />
+      </SafeAreaView>
+    );
+  }
+
   const calculatePaymentDetails = () => {
     const deliveryFee = 2.0;
     const packagingFee = 2.0;
@@ -89,10 +83,12 @@ const BillDetail = ({ navigation, route }) => {
     console.log("UserId:", userId);
     console.log("Selected Items:", selectedItems);
 
-    if (userId === "guest" || !user?.user_id) {
-      console.warn("UserId is guest:", userId);
+    if (!user || userId === "guest") {
       Alert.alert("Lỗi", "Vui lòng đăng nhập để đặt hàng!", [
-        { text: "OK", onPress: () => navigation.navigate("Login") },
+        {
+          text: "OK",
+          onPress: () => navigation.navigate("Login"),
+        },
       ]);
       return;
     }
@@ -133,8 +129,6 @@ const BillDetail = ({ navigation, route }) => {
               status: "pending",
             };
 
-            console.log("Order Data to send:", orderData);
-
             try {
               const response = await fetch(API_URL, {
                 method: "POST",
@@ -146,8 +140,6 @@ const BillDetail = ({ navigation, route }) => {
               });
 
               const data = await response.json();
-              console.log("API Response:", data);
-
               if (!response.ok) {
                 if (response.status === 401) {
                   Alert.alert("Lỗi", "Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!", [
@@ -155,11 +147,7 @@ const BillDetail = ({ navigation, route }) => {
                   ]);
                   return;
                 }
-                throw new Error(
-                  `HTTP error! Status: ${response.status}, Message: ${
-                    data.message || "Unknown error"
-                  }`
-                );
+                throw new Error(data.message || "Đặt hàng thất bại");
               }
 
               selectedItems.forEach((item) => {
@@ -185,14 +173,17 @@ const BillDetail = ({ navigation, route }) => {
     const dispatch = useDispatch();
 
     useEffect(() => {
-      if (userId !== "guest" && (!user || !user.name || !user.phoneNumber || !user.address)) {
+      if (user && (!user.name || !user.phoneNumber || !user.address)) {
         dispatch(fetchUserDetails(userId))
           .unwrap()
           .catch((error) => {
-            console.error("Fetch User Error in Address:", error.message);
+            console.error("Fetch User Error in Address:", error || "Unknown error");
+            Alert.alert("Lỗi", "Không thể tải thông tin người dùng!", [
+              { text: "OK", onPress: () => navigation.navigate("Login") },
+            ]);
           });
       }
-    }, [user, userId, dispatch]);
+    }, [userId, dispatch]);
 
     return (
       <View style={styles.addressContainer}>
@@ -217,7 +208,7 @@ const BillDetail = ({ navigation, route }) => {
           resizeMode="cover"
         />
         <View>
-          <Text style={styles.categoryText}>{item.category}</Text>
+          <Text style={styles.categoryText}>{item.category || "Unknown"}</Text>
           <Text style={styles.nameText}>{item.name || "Tên sản phẩm"}</Text>
           <View style={styles.priceContainer}>
             <Text style={styles.priceText}>${(item.price || 0).toLocaleString()}</Text>
@@ -430,10 +421,6 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: "#FFF5E9",
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-  },
   addressContainer: {
     flexDirection: "row",
     gap: 10,
@@ -600,10 +587,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
-  priceText:{
+  priceText: {
     color: "#FF4D4D",
     fontWeight: "bold",
-  }
+  },
 });
 
 export default BillDetail;

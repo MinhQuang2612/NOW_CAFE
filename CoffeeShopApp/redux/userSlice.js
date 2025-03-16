@@ -47,6 +47,7 @@ const userSlice = createSlice({
         console.log("✅ User Fetched:", action.payload);
       })
       .addCase(fetchUserDetails.rejected, (state, action) => {
+        state.user = null;  // Đặt lại user khi thất bại
         console.error("❌ User Fetch Rejected:", action.payload);
       });
   },

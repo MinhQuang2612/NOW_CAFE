@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -26,19 +26,18 @@ import Checkbox from "expo-checkbox";
 export default function CartScreen({ navigation }) {
   const cartItems = useSelector((state) => state.cart.cartItems);
   const dispatch = useDispatch();
-  const [numberItem, setNumberItem] = useState(0); // Số lượng sản phẩm đã checked
+  const [numberItem, setNumberItem] = useState(0);
   const [dataCheck, setDataCheck] = useState([]);
   const [totalAmount, setTotalAmount] = useState(0);
   const [checkAll, setCheckAll] = useState(false);
-  const user = useSelector((state) => state.user.user); // Get user from Redux
-  const userId = user?.userId || "guest"; // Use guest as fallback
-  const prevCartItems = useRef(cartItems); // Lưu giá trị cartItems trước đó
+  const user = useSelector((state) => state.user.user);
+  const userId = user?.user_id || "guest"; // Sửa userId thành user_id
+  const prevCartItems = useRef(cartItems);
 
   useEffect(() => {
     dispatch(fetchCartItems({ userId }));
   }, [userId, dispatch]);
 
-  // Đồng bộ dataCheck với cartItems
   useEffect(() => {
     if (cartItems.length === 0) {
       setDataCheck([]);
@@ -64,7 +63,6 @@ export default function CartScreen({ navigation }) {
     setNumberItem(cartItems.length);
   }, [cartItems]);
 
-  // Tính toán totalAmount và checkAll dựa trên dataCheck
   useEffect(() => {
     const total = dataCheck.reduce((acc, item) => (item.checked ? acc + item.price * item.quantity : acc), 0);
     setTotalAmount(total);
@@ -73,9 +71,6 @@ export default function CartScreen({ navigation }) {
     setCheckAll(dataCheck.length > 0 && dataCheck.every((item) => item.checked));
   }, [dataCheck]);
 
-  // console.log(cartItems);
-
-  // Update cartItems lên server khi có thay đổi thực sự
   useEffect(() => {
     if (JSON.stringify(cartItems) !== JSON.stringify(prevCartItems.current) && cartItems.length > 0) {
       dispatch(updateCartItems({ userId, cartItems }));
@@ -184,13 +179,18 @@ export default function CartScreen({ navigation }) {
                 return { ...fullItem, quantity: item.quantity };
               });
 
-            if (selectedItems.length === 0) return;
-
-           // console.log(selectedItems);
-            dispatch(addToSelectedItem
-              ({ listItem: selectedItems }));
-
-            navigation.navigate("BillDetail", {totalAmount });
+            if (selectedItems.length === 0) {
+              Alert.alert("Lỗi", "Vui lòng chọn ít nhất một sản phẩm để đặt hàng!");
+              return;
+            }
+            if (userId === "guest") {
+              Alert.alert("Lỗi", "Vui lòng đăng nhập để tiếp tục!", [
+                { text: "OK", onPress: () => navigation.navigate("Login") },
+              ]);
+              return;
+            }
+            dispatch(addToSelectedItem({ listItem: selectedItems }));
+            navigation.navigate("BillDetail", { totalAmount });
           }}
         >
           <Text style={styles.checkoutText}>
