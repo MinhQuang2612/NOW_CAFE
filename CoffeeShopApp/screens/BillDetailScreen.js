@@ -13,48 +13,53 @@ import React, { useEffect, useState } from "react";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchUserDetails } from "../redux/userSlice";
-import { removeFromCart } from "../redux/cartSlice";
+import { removeFromCart, fetchCartItems } from "../redux/cartSlice";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 
 const API_URL = `${process.env.EXPO_PUBLIC_API_URL}/api/orders`;
 
 const BillDetail = ({ navigation, route }) => {
-  React.useLayoutEffect(() => {
+  React.useLayoutEffect(() => { 
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
   const user = useSelector((state) => state.user.user);
-  const cartUserId = useSelector((state) => state.cart.cartUserId);
   const selectedItems = useSelector((state) => state.cart.selectedItem) || [];
   const cartItems = useSelector((state) => state.cart.cartItems) || [];
   const [paymentSelected, setPaymentSelected] = useState(1); // 1: Thanh toán khi nhận hàng
   const dispatch = useDispatch();
   const { voucher } = route.params || { voucher: null };
-  const userId = cartUserId || "guest";
+  const userId = user?.user_id || "guest";
 
   useEffect(() => {
     console.log("API_URL:", API_URL);
     console.log("User from Redux:", user);
-    console.log("Cart UserId:", cartUserId);
     console.log("UserId (final):", userId);
     console.log("Selected Items:", selectedItems);
     console.log("Cart Items:", cartItems);
 
-    if (userId === "guest" && !cartUserId) {
+    if (userId === "guest") {
       console.warn("No valid userId found, redirecting to Login");
       Alert.alert("Lỗi", "Vui lòng đăng nhập để đặt hàng!", [
         { text: "OK", onPress: () => navigation.navigate("Login") },
       ]);
-    } else if (!user && userId !== "guest") {
-      dispatch(fetchUserDetails(userId))
+    } else {
+      // Fetch cart items khi userId hợp lệ
+      dispatch(fetchCartItems({ userId }))
         .unwrap()
         .catch((error) => {
-          console.error("Fetch User Error in useEffect:", error.message);
+          console.error("Fetch Cart Error in useEffect:", error.message);
         });
+      if (!user || !user.name || !user.phoneNumber || !user.address) {
+        dispatch(fetchUserDetails(userId))
+          .unwrap()
+          .catch((error) => {
+            console.error("Fetch User Error in useEffect:", error.message);
+          });
+      }
     }
-  }, [user, cartUserId, userId, selectedItems, cartItems, dispatch, navigation]);
-
+  }, [user, userId, selectedItems, cartItems, dispatch, navigation]);
   const calculatePaymentDetails = () => {
     const deliveryFee = 2.0;
     const packagingFee = 2.0;
@@ -84,7 +89,7 @@ const BillDetail = ({ navigation, route }) => {
     console.log("UserId:", userId);
     console.log("Selected Items:", selectedItems);
 
-    if (userId === "guest") {
+    if (userId === "guest" || !user?.user_id) {
       console.warn("UserId is guest:", userId);
       Alert.alert("Lỗi", "Vui lòng đăng nhập để đặt hàng!", [
         { text: "OK", onPress: () => navigation.navigate("Login") },
@@ -113,7 +118,7 @@ const BillDetail = ({ navigation, route }) => {
           onPress: async () => {
             const orderData = {
               hoadon_id: `HHD${Math.floor(1000 + Math.random() * 9000)}`,
-              user: { User_id: userId },
+              user: { User_id: user.user_id },
               ChiTietHoaDon: {
                 SanPham: selectedItems.map((item) => ({
                   product_id: item.sanpham_id,
@@ -215,7 +220,7 @@ const BillDetail = ({ navigation, route }) => {
           <Text style={styles.categoryText}>{item.category}</Text>
           <Text style={styles.nameText}>{item.name || "Tên sản phẩm"}</Text>
           <View style={styles.priceContainer}>
-            <Text style={styles.priceText}>{(item.price || 0).toLocaleString()} VND</Text>
+            <Text style={styles.priceText}>${(item.price || 0).toLocaleString()}</Text>
             <Text>Size: 350ml</Text>
           </View>
         </View>
@@ -246,7 +251,7 @@ const BillDetail = ({ navigation, route }) => {
           />
           <View style={styles.otherItem}>
             <Text style={styles.name}>ICED YIN & YANG</Text>
-            <Text style={styles.name}>45,000 VND</Text>
+            <Text style={styles.name}>$45,00</Text>
           </View>
         </View>
         <View>
@@ -257,7 +262,7 @@ const BillDetail = ({ navigation, route }) => {
           />
           <View style={styles.otherItem}>
             <Text style={styles.name}>ICED CHOCOLATE</Text>
-            <Text style={styles.name}>60,000 VND</Text>
+            <Text style={styles.name}>$60,00</Text>
           </View>
         </View>
       </View>
@@ -335,19 +340,19 @@ const BillDetail = ({ navigation, route }) => {
           Tổng tiền sản phẩm ({selectedItems.length})
         </Text>
         <Text style={styles.paymentDetailValue}>
-          {parseFloat(paymentDetails.subtotal).toLocaleString()} VND
+          ${parseFloat(paymentDetails.subtotal).toLocaleString()}
         </Text>
       </View>
       <View style={styles.paymentDetailRow}>
         <Text style={styles.paymentDetailLabel}>Phí giao hàng</Text>
         <Text style={styles.paymentDetailValue}>
-          {parseFloat(paymentDetails.deliveryFee).toLocaleString()} VND
+          ${parseFloat(paymentDetails.deliveryFee).toLocaleString()}
         </Text>
       </View>
       <View style={styles.paymentDetailRow}>
         <Text style={styles.paymentDetailLabel}>Phí đóng gói</Text>
         <Text style={styles.paymentDetailValue}>
-          {parseFloat(paymentDetails.packagingFee).toLocaleString()} VND
+          ${parseFloat(paymentDetails.packagingFee).toLocaleString()}
         </Text>
       </View>
       {voucher && voucher.title === "Miễn phí vận chuyển" && (
@@ -362,7 +367,7 @@ const BillDetail = ({ navigation, route }) => {
         <View style={styles.paymentDetailRow}>
           <Text style={styles.paymentDetailLabel}>Khuyến mãi</Text>
           <Text style={[styles.paymentDetailValue, { color: "green" }]}>
-            -{parseFloat(paymentDetails.promoDiscount).toLocaleString()} VND
+            -${parseFloat(paymentDetails.promoDiscount).toLocaleString()}
           </Text>
         </View>
       )}
@@ -378,7 +383,7 @@ const BillDetail = ({ navigation, route }) => {
         <Text
           style={[styles.paymentDetailValue, { fontWeight: "bold", fontSize: 18, color: "red" }]}
         >
-          {parseFloat(paymentDetails.total).toLocaleString()} VND
+          ${parseFloat(paymentDetails.total).toLocaleString()}
         </Text>
       </View>
     </View>
@@ -508,7 +513,7 @@ const styles = StyleSheet.create({
   },
   otherItemContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-around",
     alignItems: "center",
     marginVertical: 10,
   },
@@ -595,6 +600,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
+  priceText:{
+    color: "#FF4D4D",
+    fontWeight: "bold",
+  }
 });
 
 export default BillDetail;
