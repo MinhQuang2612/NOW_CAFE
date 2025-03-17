@@ -7,6 +7,7 @@ import {
   Image,
   StyleSheet,
   TextInput,
+  Alert,
 } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -31,7 +32,7 @@ export default function CartScreen({ navigation }) {
   const [totalAmount, setTotalAmount] = useState(0);
   const [checkAll, setCheckAll] = useState(false);
   const user = useSelector((state) => state.user.user);
-  const userId = user?.user_id || "guest"; // Sửa userId thành user_id
+  const userId = user?.userId || "guest"; // Sửa userId thành user_id
   const prevCartItems = useRef(cartItems);
 
   useEffect(() => {

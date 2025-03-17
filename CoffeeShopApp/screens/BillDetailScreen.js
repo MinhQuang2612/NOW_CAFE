@@ -31,7 +31,7 @@ const BillDetail = ({ navigation, route }) => {
   const [isLoading, setIsLoading] = useState(true);
   const dispatch = useDispatch();
   const { voucher } = route.params || { voucher: null };
-  const userId = user?.user_id || "guest";
+  const userId = user?.userId || "guest";
 
   useEffect(() => {
     console.log("User in BillDetail:", user);
@@ -114,7 +114,7 @@ const BillDetail = ({ navigation, route }) => {
           onPress: async () => {
             const orderData = {
               hoadon_id: `HHD${Math.floor(1000 + Math.random() * 9000)}`,
-              user: { User_id: user.user_id },
+              user: { User_id: user.userId },
               ChiTietHoaDon: {
                 SanPham: selectedItems.map((item) => ({
                   product_id: item.sanpham_id,
