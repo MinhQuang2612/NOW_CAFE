@@ -1,70 +1,86 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import {
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  FlatList,
+  ActivityIndicator,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import Footer from "../components/Footer";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchOrders } from "../redux/ordersSlice";
 
 const RecentlyOtherScreen = () => {
   const navigation = useNavigation();
+  const dispatch = useDispatch();
+
   const [activeTab, setActiveTab] = useState(true);
 
-  const handleToggleTab = () => {
-    setActiveTab(!activeTab);
-  };
+  const orders = useSelector((state) => state.orders.orders);
+  const loading = useSelector((state) => state.orders.loading);
 
-  // Khai báo dữ liệu mẫu cho bill
-  const defaultBill = {
-    hoadon_id: "12345",
-    ChiTietHoaDon: {
-      dateCreated: "2025-02-28",
-      SanPham: [{}, {}, {}], // Giả định có 3 sản phẩm
-    },
-  };
+  useEffect(() => {
+    dispatch(fetchOrders());
+  }, [dispatch]);
 
-  const Item = ({ bill, status }) => {
-    const numberProduct = bill.ChiTietHoaDon.SanPham.length;
+  const recentOrders = orders.filter((order) => order.status !== "Completed");
+  const pastOrders = orders.filter((order) => order.status === "Completed");
+
+const OrderItem = ({ bill, onPress }) => {
+    // Lấy sản phẩm đầu tiên từ danh sách sản phẩm
+  const firstProduct = bill.ChiTietHoaDon?.SanPham[0];
+
+  // Tính tổng số sản phẩm trong đơn hàng (tính cả trùng lặp)
+  const totalProducts = bill.ChiTietHoaDon?.SanPham.reduce(
+    (sum, product) => sum + product.quantity,
+    0
+  );
+  
     return (
-      <View style={styles.itemContainer}>
-        <Image
-          source={{
-            uri: "https://res.cloudinary.com/dgqppqcbd/image/upload/v1739955485/B%C3%A1nh_tiramisu_mjr1rk.png",
-          }}
-          style={styles.image}
-        />
-
-        <View>
-          <View style={styles.statusContainer}>
-            <Text style={styles.nameText}>Order: {bill.hoadon_id}</Text>
-            <Text
-              style={[
-                status === "Packing"
-                  ? { backgroundColor: "#F2994A" }
-                  : { backgroundColor: "#32CD32" },
-                styles.statusText,
-              ]}
-            >
-              {status}
+      <TouchableOpacity onPress={() => onPress(bill)}>
+        <View style={styles.itemContainer}>
+          <Image
+            source={{ uri: firstProduct?.image || "https://your-default-image.com/default.png" }}
+            style={styles.image}
+          />
+          <View>
+            <View style={styles.statusContainer}>
+              <Text style={styles.nameText}>Order: {bill.hoadon_id}</Text>
+              <Text
+                style={[
+                  bill.status === "Packing"
+                    ? { backgroundColor: "#F2994A" }
+                    : { backgroundColor: "#32CD32" },
+                  styles.statusText,
+                ]}
+              >
+                {bill.status}
+              </Text>
+            </View>
+            <Text style={styles.nameText}>Product: {firstProduct?.name || "No Product"}</Text>
+            <Text style={styles.inforText}>
+              Date: {new Date(bill.ChiTietHoaDon?.dateCreated).toLocaleString("vi-VN")}
             </Text>
+            <Text style={styles.inforText}>Total Products: {totalProducts}</Text>
           </View>
-
-          <Text style={styles.inforText}>
-            Date: {bill.ChiTietHoaDon.dateCreated}
-          </Text>
-          <Text style={styles.inforText}>Product({numberProduct})</Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
+  
 
   return (
     <View style={styles.container}>
-      {/* Thanh tiêu đề với nút Tìm kiếm và Thông báo */}
+      {/* Thanh tiêu đề */}
       <View style={styles.header}>
         <Text style={styles.headerText}>Orders</Text>
         <View style={styles.iconContainer}>
-          {/* Nút Tìm kiếm */}
           <TouchableOpacity onPress={() => navigation.navigate("SearchOrder")}>
-            <Ionicons name="search" size={24} color="967259" />
+            <Ionicons name="search" size={24} color="#967259" />
           </TouchableOpacity>
         </View>
       </View>
@@ -76,7 +92,7 @@ const RecentlyOtherScreen = () => {
             { borderTopLeftRadius: 10, borderBottomLeftRadius: 10 },
             activeTab ? styles.selected : styles.unselected,
           ]}
-          onPress={handleToggleTab}
+          onPress={() => setActiveTab(true)}
         >
           <Text style={styles.textTab}>Recently</Text>
         </TouchableOpacity>
@@ -85,27 +101,33 @@ const RecentlyOtherScreen = () => {
             { borderTopRightRadius: 10, borderBottomRightRadius: 10 },
             activeTab ? styles.unselected : styles.selected,
           ]}
-          onPress={handleToggleTab}
+          onPress={() => setActiveTab(false)}
         >
           <Text style={styles.textTab}>Past Orders</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Nội dung tab */}
+      {/* Hiển thị danh sách đơn hàng */}
       <View style={styles.contentContainer}>
-        {activeTab ? (
-          <Item bill={defaultBill} status={"Packing"} />
+        {loading ? (
+          <ActivityIndicator size="large" color="#230C02" />
         ) : (
-          <Item bill={defaultBill} status={"Completed"} />
+          <FlatList
+            data={activeTab ? recentOrders : pastOrders}
+            keyExtractor={(item) => item.hoadon_id.toString()}
+            renderItem={({ item }) => <OrderItem bill={item} />}
+            showsVerticalScrollIndicator={false}
+          />
         )}
       </View>
 
       <Footer />
     </View>
-  );
+  );  
 };
 
 export default RecentlyOtherScreen;
+
 
 const styles = StyleSheet.create({
   container: {
@@ -118,14 +140,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    top:-20,
+    top: -20,
     paddingVertical: 15,
     backgroundColor: "#EEDCC6",
   },
   headerText: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "967259",
+    color: "#967259",
   },
   iconContainer: {
     flexDirection: "row",

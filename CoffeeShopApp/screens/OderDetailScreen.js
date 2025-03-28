@@ -1,3 +1,5 @@
+//chitietdơnhangbandau
+
 import {
   Image,
   ScrollView,
