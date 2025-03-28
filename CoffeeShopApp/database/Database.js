@@ -452,30 +452,47 @@ app.delete("/api/vouchers/:id", async (req, res) => {
   }
 });
 
-// Định nghĩa Schema và Model cho Orders
-const OrderSchema = new mongoose.Schema({
-  hoadon_id: { type: String, required: true, unique: true },
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // Tham chiếu đến Users collection
-  ChiTietHoaDon: {
-    type: Object,
-    required: true,
-    schema: {
+const OrderSchema = new mongoose.Schema(
+  {
+    hoadon_id: { type: String, required: true },
+    user: {
+      user_id: String,
+      name: String,
+      phoneNumber: String,
+      address: String,
+    },
+    ChiTietHoaDon: {
+      chitiethoadon_id: String,
       SanPham: [
         {
-          product_id: String,
+          productId: String,
           name: String,
           quantity: Number,
           price: Number,
+          image: String,
         },
       ],
-      dateCreated: { type: Date, default: Date.now },
-      tongTien: Number,
+      dateCreated: Date,
     },
+    tongTien: Number,
+    status: String,
+    paymentMethod: String,
   },
-  paymentMethod: { type: String, required: true },
-  status: { type: String, default: "pending" },
+);
+
+const Orders = mongoose.model("Orders", OrderSchema, "Orders");
+
+
+app.get("/api/orders", async (req, res) => {
+  try {
+    const orders = await Orders.find({});
+    res.json(orders);
+  } catch (error) {
+    console.error("❌ Lỗi API Orders:", error);
+    res.status(500).json({ message: "Lỗi server", error });
+  }
 });
-const Order = mongoose.model("Order", OrderSchema, "Orders");
+
 
 // API để tạo đơn hàng mới
 app.post("/api/orders", async (req, res) => {
@@ -506,6 +523,11 @@ app.post("/api/orders", async (req, res) => {
     res.status(500).json({ success: false, message: "Lỗi server", error: error.message });
   }
 });
+
+
+
+
+
 
 
 // Chạy server
