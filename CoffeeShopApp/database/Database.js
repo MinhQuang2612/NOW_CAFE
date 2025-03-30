@@ -144,7 +144,7 @@ const AccountFacebookSchema = new mongoose.Schema({
   userId: { type: String, unique: true },
 });
 
-const AccountFacebook = mongoose.model("AccountFacebook", AccountFacebookSchema);
+const AccountFacebook = mongoose.model("AccountFacebook", AccountFacebookSchema,"AccountFacebook");
 // API đăng nhập tài khoản Facebook
 app.post("/api/auth/facebook", async (req, res) => {
   console.log("📩 Request body nhận được:", req.body);
@@ -153,8 +153,7 @@ app.post("/api/auth/facebook", async (req, res) => {
   console.log("🔍 Facebook ID:", faceID);
 
   try {
-    let user = await AccountFacebook.findOne({ faceID });
-
+    let user = await AccountFacebook.findOne({ faceID: uid });
     if (!user) {
       const count = await AccountFacebook.countDocuments();
       const newUserId = `user${String(count + 1).padStart(4, "0")}`; // Sửa thành `user0001`
@@ -179,9 +178,10 @@ app.post("/api/auth/facebook", async (req, res) => {
       await newUserInUsers.save();
       console.log("🆕 Đã tạo user trong Users:", newUserInUsers);
     }
-
-    console.log("✅ Người dùng đã tồn tại:", user);
-    res.json({ success: true, user, userId: user.userId });
+     else{
+      console.log("✅ Người dùng đã tồn tại:", user);
+      res.json({ success: true, user, userId: user.userId });
+    }
   } catch (error) {
     console.error("❌ Lỗi xác thực Facebook:", error);
     res.status(500).json({ success: false, message: "Lỗi server" });
@@ -227,7 +227,7 @@ const UserSchema = new mongoose.Schema({
   email: String,
 });
 
-const User = mongoose.model("User", UserSchema, "Users");
+const User = mongoose.model("User", UserSchema, "User");
 
 // Route để lấy thông tin người dùng theo userId từ collection User
 app.get("/api/user/:userId", async (req, res) => {

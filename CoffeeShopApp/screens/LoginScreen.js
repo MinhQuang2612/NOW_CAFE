@@ -134,17 +134,15 @@ const LoginScreen = ({ navigation }) => {
     }
   }, [data]);
 
-  const handleLoginFaceBook = async (userId) => {
+  const handleLoginFaceBook = async (uid) => {
     try {
       if (!data) {
         throw new Error("Không tìm thấy thông tin tài khoản!");
       }
-      console.log("✅ Đăng nhập Facebook thành công:", data.email, data.displayName, data.uid);
-  
       const bodyData = JSON.stringify({
         email: data.email,
         username: data.displayName,
-        uid: userId,
+        uid: uid,
       });
       console.log("Gửi dữ liệu đến API:", bodyData);
       const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/facebook`, {
