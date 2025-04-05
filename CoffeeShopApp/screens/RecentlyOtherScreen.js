@@ -30,18 +30,18 @@ const RecentlyOtherScreen = () => {
   const recentOrders = orders.filter((order) => order.status !== "Completed");
   const pastOrders = orders.filter((order) => order.status === "Completed");
 
-const OrderItem = ({ bill, onPress }) => {
-    // Lấy sản phẩm đầu tiên từ danh sách sản phẩm
-  const firstProduct = bill.ChiTietHoaDon?.SanPham[0];
-
-  // Tính tổng số sản phẩm trong đơn hàng (tính cả trùng lặp)
-  const totalProducts = bill.ChiTietHoaDon?.SanPham.reduce(
-    (sum, product) => sum + product.quantity,
-    0
-  );
+  const OrderItem = ({ bill }) => {
+    const navigation = useNavigation();
+    const firstProduct = bill.ChiTietHoaDon?.SanPham[0];
+    const totalProducts = bill.ChiTietHoaDon?.SanPham.reduce(
+      (sum, product) => sum + product.quantity,
+      0
+    );
   
     return (
-      <TouchableOpacity onPress={() => onPress(bill)}>
+      <TouchableOpacity
+        onPress={() => navigation.navigate('OrderDetail', { order: bill })}  // Chuyển dữ liệu đơn hàng
+      >
         <View style={styles.itemContainer}>
           <Image
             source={{ uri: firstProduct?.image || "https://your-default-image.com/default.png" }}
@@ -71,6 +71,7 @@ const OrderItem = ({ bill, onPress }) => {
       </TouchableOpacity>
     );
   };
+  
   
 
   return (

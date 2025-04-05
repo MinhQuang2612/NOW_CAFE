@@ -30,8 +30,8 @@ const SearchOrderScreen = () => {
   // Hàm xử lý khi nhấn vào đơn hàng
   
   const handleOrderPress = (bill) => {
-    dispatch(selectOrder(bill)); // Lưu đơn hàng vào Redux
-    navigation.navigate("OrderDetail");
+    // Điều hướng đến OrderDetailScreen và truyền dữ liệu đơn hàng
+    navigation.navigate("OrderDetail", { order: bill });
   };
   // Component hiển thị mỗi đơn hàng
   const OrderItem = ({ bill }) => {
