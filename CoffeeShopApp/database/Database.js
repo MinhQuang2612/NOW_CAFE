@@ -481,7 +481,7 @@ const OrderSchema = new mongoose.Schema(
   { timestamps: true } // Tạo trường createdAt tự động
 );
 
-const Orders = mongoose.model("Orders", OrderSchema);
+const Orders = mongoose.model("Orders", OrderSchema, "Orders");
 
 app.get("/api/orders/:userId", async (req, res) => {
   const { userId } = req.params; // Lấy userId từ tham số URL
@@ -494,7 +494,6 @@ app.get("/api/orders/:userId", async (req, res) => {
 
     console.log("Orders found:", orders); // Log kết quả truy vấn
 
-    // Nếu không tìm thấy đơn hàng nào
     if (orders.length === 0) {
       return res.status(404).json({ success: false, message: "Không có đơn hàng nào cho người dùng này." });
     }
