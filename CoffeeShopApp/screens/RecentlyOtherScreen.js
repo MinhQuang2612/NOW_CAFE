@@ -7,55 +7,73 @@ import {
   View,
   FlatList,
   ActivityIndicator,
+  TextInput,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import Footer from "../components/Footer";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchOrders } from "../redux/ordersSlice";
 
 const RecentlyOtherScreen = ({ route }) => {
   const navigation = useNavigation();
-  const dispatch = useDispatch();
+  const { userId } = route.params;  // Lấy userId từ navigation parameters
 
-  const { userId } = route.params;  // Retrieve userId from navigation parameters
-
-  const [activeTab, setActiveTab] = useState(true);
-
-  const orders = useSelector((state) => state.orders.orders);
-  const loading = useSelector((state) => state.orders.loading);
+  const [activeTab, setActiveTab] = useState(true);  // Khai báo activeTab
+  const [orders, setOrders] = useState([]);  // State để lưu đơn hàng
+  const [loading, setLoading] = useState(true);  // State để theo dõi việc tải dữ liệu
+  const [error, setError] = useState(null);  // State để theo dõi lỗi
+  const [searchText, setSearchText] = useState("");  // State cho ô tìm kiếm
 
   useEffect(() => {
     if (userId) {
-      dispatch(fetchOrders(userId));  // Dispatch an action to fetch orders for the specific user
+      fetchOrders(userId);  // Gọi API khi component mount và userId có giá trị
     }
-  }, [dispatch, userId]);
+  }, [userId]);
 
-  const fetchOrders = (userId) => async (dispatch) => {
+  const fetchOrders = async (userId) => {
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/orders?userId=${userId}`);
+      fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/orders/${userId}`)  // Pass userId to the API endpoint
       const data = await response.json();
-      dispatch(setOrders(data.orders));  // Assuming you are dispatching the orders to the Redux store
+
+      if (data.success) {
+        setOrders(data.orders);  // Lưu dữ liệu đơn hàng vào state
+      } else {
+        setError("Không có đơn hàng nào cho người dùng này.");
+      }
     } catch (error) {
-      console.error("Error fetching orders:", error);
+      setError("Lỗi khi lấy dữ liệu từ API.");
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Lọc đơn hàng theo trạng thái
   const recentOrders = orders.filter((order) => order.status !== "Completed");
   const pastOrders = orders.filter((order) => order.status === "Completed");
 
+  // Lọc đơn hàng theo từ khóa tìm kiếm
+  const filteredOrders = searchText
+    ? orders.filter((order) => {
+        const orderId = order.hoadon_id.toString();
+        const productName = order.ChiTietHoaDon?.SanPham?.map((sp) => sp.name).join(" ") || "";
+        const orderDate = new Date(order.ChiTietHoaDon?.dateCreated).toLocaleDateString("vi-VN");
+
+        return (
+          orderId.includes(searchText) ||
+          productName.toLowerCase().includes(searchText.toLowerCase()) ||
+          orderDate.includes(searchText)
+        );
+      })
+    : orders;  // Nếu ô tìm kiếm trống, hiển thị tất cả các đơn hàng
+
   const OrderItem = ({ bill }) => {
-    const navigation = useNavigation();
     const firstProduct = bill.ChiTietHoaDon?.SanPham[0];
     const totalProducts = bill.ChiTietHoaDon?.SanPham.reduce(
       (sum, product) => sum + product.quantity,
       0
     );
-  
+
     return (
-      <TouchableOpacity
-        onPress={() => navigation.navigate('OrderDetail', { order: bill })}  // Chuyển dữ liệu đơn hàng
-      >
+      <TouchableOpacity onPress={() => navigation.navigate("OrderDetail", { order: bill })}>
         <View style={styles.itemContainer}>
           <Image
             source={{ uri: firstProduct?.image || "https://your-default-image.com/default.png" }}
@@ -85,22 +103,32 @@ const RecentlyOtherScreen = ({ route }) => {
       </TouchableOpacity>
     );
   };
-  
-  
 
   return (
     <View style={styles.container}>
-      {/* Thanh tiêu đề */}
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerText}>Orders</Text>
         <View style={styles.iconContainer}>
-          <TouchableOpacity onPress={() => navigation.navigate("SearchOrder")}>
+          {/* <TouchableOpacity onPress={() => navigation.navigate("SearchOrder")}>
             <Ionicons name="search" size={24} color="#967259" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
 
-      {/* Chuyển đổi tab */}
+      {/* Tìm kiếm */}
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color="#888" style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Nhập ID, tên sản phẩm hoặc ngày (dd/mm/yyyy)"
+          placeholderTextColor="#AAA"
+          value={searchText}
+          onChangeText={setSearchText}
+        />
+      </View>
+
+      {/* Tab selection */}
       <View style={styles.toggleTabContainer}>
         <TouchableOpacity
           style={[
@@ -122,13 +150,17 @@ const RecentlyOtherScreen = ({ route }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Hiển thị danh sách đơn hàng */}
+      {/* Display orders */}
       <View style={styles.contentContainer}>
         {loading ? (
           <ActivityIndicator size="large" color="#230C02" />
+        ) : error ? (
+          <Text>Error: {error}</Text>
+        ) : filteredOrders.length === 0 ? (
+          <Text style={styles.noResultText}>❌ Không tìm thấy đơn hàng</Text>
         ) : (
           <FlatList
-            data={activeTab ? recentOrders : pastOrders}
+            data={filteredOrders}
             keyExtractor={(item) => item.hoadon_id.toString()}
             renderItem={({ item }) => <OrderItem bill={item} />}
             showsVerticalScrollIndicator={false}
@@ -138,11 +170,8 @@ const RecentlyOtherScreen = ({ route }) => {
 
       <Footer />
     </View>
-  );  
+  );
 };
-
-export default RecentlyOtherScreen;
-
 
 const styles = StyleSheet.create({
   container: {
@@ -230,4 +259,29 @@ const styles = StyleSheet.create({
   inforText: {
     color: "#967259",
   },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EEE",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 12,
+    margin: 10,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    padding: 8,
+    flex: 1,
+    height: 40,
+  },
+  noResultText: {
+    textAlign: "center",
+    marginTop: 20,
+    fontSize: 16,
+    color: "#888",
+  },
 });
+
+export default RecentlyOtherScreen;
