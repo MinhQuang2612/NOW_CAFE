@@ -120,6 +120,15 @@ export default function ProfileScreen({ navigation }) {
             </View>
           </View>
 
+          <View style={styles.profileSectionn}>       
+            <TouchableOpacity 
+              style={styles.ordersButton} 
+              onPress={() => navigation.navigate("RecentlyOrder", { userId: user.userId })}
+            >
+              <Text style={styles.formTitle}>Đơn hàng của bạn</Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.formSection}>
             <View style={styles.formHeader}>
               <Text style={styles.formTitle}>Thông Tin Chung</Text>
@@ -218,6 +227,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     alignItems: "flex-start",
   },
+
+  profileSectionn: {
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 8,
+    marginBottom: 10,
+    alignItems: "flex-start",
+  },
+
   memberStatus: {
     fontSize: 16,
     color: "#666",

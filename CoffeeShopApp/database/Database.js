@@ -456,7 +456,7 @@ const OrderSchema = new mongoose.Schema(
   {
     hoadon_id: { type: String, required: true },
     user: {
-      user_id: String,
+      user_id: { type: String, required: true }, // Đảm bảo user_id là String
       name: String,
       phoneNumber: String,
       address: String,
@@ -478,21 +478,33 @@ const OrderSchema = new mongoose.Schema(
     status: String,
     paymentMethod: String,
   },
+  { timestamps: true } // Tạo trường createdAt tự động
 );
 
-const Orders = mongoose.model("Orders", OrderSchema, "Orders");
+const Orders = mongoose.model("Orders", OrderSchema);
 
+app.get("/api/orders/:userId", async (req, res) => {
+  const { userId } = req.params; // Lấy userId từ tham số URL
 
-app.get("/api/orders", async (req, res) => {
+  console.log("Fetching orders for userId:", userId); // Log thông tin userId
+
   try {
-    const orders = await Orders.find({});
-    res.json(orders);
+    // Truy vấn tất cả các đơn hàng của người dùng theo userId
+    const orders = await Orders.find({ "user.user_id": userId }).sort({ createdAt: -1 });
+
+    console.log("Orders found:", orders); // Log kết quả truy vấn
+
+    // Nếu không tìm thấy đơn hàng nào
+    if (orders.length === 0) {
+      return res.status(404).json({ success: false, message: "Không có đơn hàng nào cho người dùng này." });
+    }
+
+    res.status(200).json({ success: true, orders });
   } catch (error) {
-    console.error("❌ Lỗi API Orders:", error);
-    res.status(500).json({ message: "Lỗi server", error });
+    console.error("❌ Lỗi khi lấy đơn hàng:", error);
+    res.status(500).json({ success: false, message: "Lỗi server", error: error.message });
   }
 });
-
 
 // API để tạo đơn hàng mới
 app.post("/api/orders", async (req, res) => {

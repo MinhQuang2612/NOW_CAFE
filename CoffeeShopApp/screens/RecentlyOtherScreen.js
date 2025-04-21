@@ -14,9 +14,11 @@ import Footer from "../components/Footer";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchOrders } from "../redux/ordersSlice";
 
-const RecentlyOtherScreen = () => {
+const RecentlyOtherScreen = ({ route }) => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
+
+  const { userId } = route.params;  // Retrieve userId from navigation parameters
 
   const [activeTab, setActiveTab] = useState(true);
 
@@ -24,8 +26,20 @@ const RecentlyOtherScreen = () => {
   const loading = useSelector((state) => state.orders.loading);
 
   useEffect(() => {
-    dispatch(fetchOrders());
-  }, [dispatch]);
+    if (userId) {
+      dispatch(fetchOrders(userId));  // Dispatch an action to fetch orders for the specific user
+    }
+  }, [dispatch, userId]);
+
+  const fetchOrders = (userId) => async (dispatch) => {
+    try {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/orders?userId=${userId}`);
+      const data = await response.json();
+      dispatch(setOrders(data.orders));  // Assuming you are dispatching the orders to the Redux store
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+    }
+  };
 
   const recentOrders = orders.filter((order) => order.status !== "Completed");
   const pastOrders = orders.filter((order) => order.status === "Completed");
