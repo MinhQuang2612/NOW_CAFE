@@ -2,33 +2,30 @@ import React, { useState } from "react";
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, FlatList, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import { useSelector } from "react-redux";
 import Footer from "../components/Footer";
 
-const SearchOrderScreen = () => {
+const SearchOrderScreen = ({ route }) => {
   const navigation = useNavigation();
-  const [searchText, setSearchText] = useState(""); // Từ khóa tìm kiếm
-  const [loading, setLoading] = useState(false); // Trạng thái loading
-  const [error, setError] = useState(null); // Lỗi nếu có
+  const { orders } = route.params;  // Nhận đơn hàng từ màn RecentlyOtherScreen
+  const [searchText, setSearchText] = useState("");  // Từ khóa tìm kiếm
+  const [loading, setLoading] = useState(false);  // Trạng thái loading
+  const [error, setError] = useState(null);  // Lỗi nếu có
 
-  // Lấy danh sách đơn hàng từ Redux store
-  const orders = useSelector((state) => state.orders.orders);
-
-  // Lọc đơn hàng theo từ khóa tìm kiếm
+  // Lọc đơn hàng theo từ khóa tìm kiếm, chuyển tất cả thành chữ thường để so sánh
   const filteredOrders = searchText
     ? orders.filter((order) => {
-        const orderId = order.hoadon_id.toString();
-        const productName = order.ChiTietHoaDon?.SanPham?.map((sp) => sp.name).join(" ") || "";
-        const orderDate = new Date(order.ChiTietHoaDon?.dateCreated).toLocaleDateString("vi-VN");
+        const orderId = order.hoadon_id.toString().toLowerCase(); // Chuyển ID đơn hàng thành chữ thường
+        const productName = order.ChiTietHoaDon?.SanPham?.map((sp) => sp.name).join(" ")?.toLowerCase() || ""; // Chuyển tên sản phẩm thành chữ thường
+        const orderDate = new Date(order.ChiTietHoaDon?.dateCreated).toLocaleDateString("vi-VN").toLowerCase(); // Chuyển ngày thành chữ thường
 
         // Kiểm tra nếu tìm kiếm trùng với ID, tên sản phẩm hoặc ngày
         return (
-          orderId.includes(searchText) ||
-          productName.toLowerCase().includes(searchText.toLowerCase()) ||
-          orderDate.includes(searchText)
+          orderId.includes(searchText.toLowerCase()) ||  // So sánh với chữ thường của từ khóa tìm kiếm
+          productName.includes(searchText.toLowerCase()) ||  // So sánh tên sản phẩm với chữ thường của từ khóa tìm kiếm
+          orderDate.includes(searchText.toLowerCase()) // So sánh ngày với chữ thường của từ khóa tìm kiếm
         );
       })
-    : [];
+    : orders;  // Nếu ô tìm kiếm trống, hiển thị tất cả các đơn hàng
 
   const OrderItem = ({ bill }) => {
     const firstProduct = bill.ChiTietHoaDon?.SanPham[0];
@@ -71,7 +68,6 @@ const SearchOrderScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="black" />
@@ -80,7 +76,6 @@ const SearchOrderScreen = () => {
         <View style={{ width: 24 }} />
       </View>
 
-      {/* Tìm kiếm */}
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={20} color="#888" style={styles.searchIcon} />
         <TextInput
@@ -92,11 +87,8 @@ const SearchOrderScreen = () => {
         />
       </View>
 
-      {/* Kết quả tìm kiếm */}
       {loading ? (
         <ActivityIndicator size="large" color="#230C02" />
-      ) : searchText === "" ? (
-        <Text style={styles.noResultText}>🔎 Chưa có kết quả tìm kiếm</Text>
       ) : filteredOrders.length === 0 ? (
         <Text style={styles.noResultText}>❌ Không tìm thấy đơn hàng</Text>
       ) : (
@@ -108,7 +100,6 @@ const SearchOrderScreen = () => {
         />
       )}
 
-      {/* Footer */}
       <Footer />
     </View>
   );

@@ -31,7 +31,7 @@ const RecentlyOtherScreen = ({ route }) => {
 
   const fetchOrders = async (userId) => {
     try {
-      fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/orders/${userId}`)  // Pass userId to the API endpoint
+      const response = await fetch (`${process.env.EXPO_PUBLIC_API_URL}/api/orders/${userId}`)  ;
       const data = await response.json();
 
       if (data.success) {
@@ -57,6 +57,7 @@ const RecentlyOtherScreen = ({ route }) => {
         const productName = order.ChiTietHoaDon?.SanPham?.map((sp) => sp.name).join(" ") || "";
         const orderDate = new Date(order.ChiTietHoaDon?.dateCreated).toLocaleDateString("vi-VN");
 
+        // Tìm kiếm không phân biệt chữ hoa hay chữ thường
         return (
           orderId.includes(searchText) ||
           productName.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -110,14 +111,16 @@ const RecentlyOtherScreen = ({ route }) => {
       <View style={styles.header}>
         <Text style={styles.headerText}>Orders</Text>
         <View style={styles.iconContainer}>
-          {/* <TouchableOpacity onPress={() => navigation.navigate("SearchOrder")}>
+          <TouchableOpacity onPress={() =>
+          navigation.navigate("SearchOrder", { orders: orders }) // Truyền đơn hàng qua navigate
+        }>
             <Ionicons name="search" size={24} color="#967259" />
-          </TouchableOpacity> */}
+          </TouchableOpacity>
         </View>
       </View>
 
       {/* Tìm kiếm */}
-      <View style={styles.searchContainer}>
+      {/* <View style={styles.searchContainer}>
         <Ionicons name="search" size={20} color="#888" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
@@ -126,7 +129,7 @@ const RecentlyOtherScreen = ({ route }) => {
           value={searchText}
           onChangeText={setSearchText}
         />
-      </View>
+      </View> */}
 
       {/* Tab selection */}
       <View style={styles.toggleTabContainer}>
@@ -156,11 +159,9 @@ const RecentlyOtherScreen = ({ route }) => {
           <ActivityIndicator size="large" color="#230C02" />
         ) : error ? (
           <Text>Error: {error}</Text>
-        ) : filteredOrders.length === 0 ? (
-          <Text style={styles.noResultText}>❌ Không tìm thấy đơn hàng</Text>
         ) : (
           <FlatList
-            data={filteredOrders}
+            data={activeTab ? recentOrders : pastOrders} // Sử dụng recentOrders hoặc pastOrders theo tab
             keyExtractor={(item) => item.hoadon_id.toString()}
             renderItem={({ item }) => <OrderItem bill={item} />}
             showsVerticalScrollIndicator={false}
