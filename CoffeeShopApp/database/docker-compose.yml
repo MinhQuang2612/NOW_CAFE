@@ -1,0 +1,97 @@
+version: '3.8'
+
+networks:
+  app-network:
+    driver: bridge
+
+services:
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-network
+
+  user-service:
+    build: ./user-service
+    ports:
+      - "5001:5001"
+    environment:
+      - MONGO_URI=mongodb+srv://minhquangyi:uLzta6al7EHdfli4@cluster0.bnk2j.mongodb.net/QuanLyQuanCafe
+      - PORT=5001
+      - EMAIL_USER=tktvuong040103@gmail.com
+      - EMAIL_PASS=tumgvyfdkwluqihz
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+
+  product-service:
+    build: ./product-service
+    ports:
+      - "5002:5002"
+    environment:
+      - MONGO_URI=mongodb+srv://minhquangyi:uLzta6al7EHdfli4@cluster0.bnk2j.mongodb.net/QuanLyQuanCafe
+      - PORT=5002
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+
+  order-service:
+    build: ./order-service
+    ports:
+      - "5003:5003"
+    environment:
+      - MONGO_URI=mongodb+srv://minhquangyi:uLzta6al7EHdfli4@cluster0.bnk2j.mongodb.net/QuanLyQuanCafe
+      - PORT=5003
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+
+  cart-service:
+    build: ./cart-service
+    ports:
+      - "5004:5004"
+    environment:
+      - MONGO_URI=mongodb+srv://minhquangyi:uLzta6al7EHdfli4@cluster0.bnk2j.mongodb.net/QuanLyQuanCafe
+      - PORT=5004
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+
+  voucher-service:
+    build: ./voucher-service
+    ports:
+      - "5005:5005"
+    environment:
+      - MONGO_URI=mongodb+srv://minhquangyi:uLzta6al7EHdfli4@cluster0.bnk2j.mongodb.net/QuanLyQuanCafe
+      - PORT=5005
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx-gateway
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - user-service
+      - product-service
+      - order-service
+      - cart-service
+      - voucher-service
+    networks:
+      - app-network
+
+volumes:
+  mongo-data: 
