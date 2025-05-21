@@ -14,6 +14,7 @@ import {
   StatusBar
 } from "react-native";
 import { Feather } from "@expo/vector-icons"; // Import Feather icons
+import { get, set } from "mongoose";
 
 const { width, height } = Dimensions.get("window");
 const scale = Math.min(width, height) / 375;
@@ -34,6 +35,63 @@ const SignUpScreen = ({ navigation }) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  const getOTP = async (email) =>{
+  try {
+    const response = await fetch("http://localhost:5001/api/user/send-otp", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ 
+        email: email
+    }),
+    });
+    
+    if (!response.ok) {
+    throw new Error("Network response was not ok");
+    }
+    const data = await response.json();
+    console.log("OTP sent successfully:", data);
+    
+    navigation.navigate('OTP',{username, email, phone, password,otp: data.otp});
+} catch (error) {
+    console.error("Error during register:", error);
+    throw error;
+}
+}
+const isValidGmail = (email) => {
+  const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+  const cleanedEmail = email.trim().toLowerCase();
+  return gmailRegex.test(cleanedEmail);
+};
+function isValidPassword(password) {
+  const regex = /^[A-Za-z0-9]{8,}$/;
+  return regex.test(password);
+}
+
+
+  const handleVerify = async () => {
+    if(!username || !email || !phone || !password || !confirmPassword) {
+      alert("Please fill in all fields.");
+      return;
+    } 
+    if (!isValidGmail(email)) {
+      alert("Please enter a valid Gmail address.");
+      return;
+    }
+    
+    if (!isValidPassword(password)) {
+      alert("Password must be 8 characters long and contain only letters and numbers.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      alert("Passwords do not match.");
+      return;
+    }
+    await getOTP(email);
+    
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -127,8 +185,9 @@ const SignUpScreen = ({ navigation }) => {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Home')}>
-              <Text style={styles.buttonText}>Sign up</Text>
+            <TouchableOpacity style={styles.button} onPress={() =>{ handleVerify(); }
+           }>
+              <Text style={styles.buttonText}>Authenticate with gmail OTP</Text>
             </TouchableOpacity>
 
             <View style={styles.signupContainer}>

@@ -55,6 +55,7 @@ const SignInScreen = ({ navigation }) => {
       const bodyData = JSON.stringify({ userName: username, passWord: password });
       console.log("Gửi request với:", { userName: username, passWord: password }); // Debug
       const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/login`, {
+      //const response = await fetch("http://localhost:5001/api/user/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -142,7 +143,7 @@ const SignInScreen = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity style={styles.forgotPasswordButton}>
+              <TouchableOpacity onPress={() => navigation.navigate("ResetPassword")} style={styles.forgotPasswordButton}>
                 <Text style={styles.forgotPasswordText}>Forgot your password?</Text>
               </TouchableOpacity>
 

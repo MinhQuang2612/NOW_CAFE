@@ -28,8 +28,12 @@ import ReviewScreens from "./screens/ReviewScreen.js";
 import ReviewDetailScreen from "./screens/ReviewDetailScreen.js";
 import SearchOrderScreen from "./screens/SearchOrderScreen.js";
 import BillDetailBScreen from "./screens/BillDetailScreen.js";
-
+import OTPScreen from "./screens/OTPScreen.js";
+import ResetPasswordScreen from "./screens/ResetPasswordScreen.js";
+import OTPRessPassScreen from "./screens/OTPRessPassScreen.js";
+import ChanePasswordScreen from "./screens/ChanePasswordScreen.js";
 const Stack = createStackNavigator();
+
 
 export default function App() {
   return (
@@ -181,6 +185,27 @@ export default function App() {
           <Stack.Screen
             name="BillDetail"
             component={BillDetailBScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OTP"
+            component={OTPScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ResetPassword"
+            component={ResetPasswordScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OTPRessPass"
+            component={OTPRessPassScreen}
+            options={{ headerShown: false }}
+          />
+          
+          <Stack.Screen
+            name="ChanePassword"
+            component={ChanePasswordScreen}
             options={{ headerShown: false }}
           />
         </Stack.Navigator>
