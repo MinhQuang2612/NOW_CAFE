@@ -38,7 +38,7 @@ const SignUpScreen = ({ navigation }) => {
   
   const getOTP = async (email) =>{
   try {
-    const response = await fetch("http://localhost:5001/api/user/send-otp", {
+    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/user/send-otp`, {
     method: "POST",
     headers: {
         "Content-Type": "application/json",
@@ -52,7 +52,7 @@ const SignUpScreen = ({ navigation }) => {
     throw new Error("Network response was not ok");
     }
     const data = await response.json();
-    console.log("OTP sent successfully:", data);
+    
     
     navigation.navigate('OTP',{username, email, phone, password,otp: data.otp});
 } catch (error) {

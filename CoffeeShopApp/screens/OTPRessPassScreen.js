@@ -30,7 +30,7 @@ const normalize = (size) => {
 
 const OTPRessPassScreen = ({route, navigation }) => {
   const [timer, setTimer] = useState(60);
-  const { username, data } = route.params;
+  const { username, data,email } = route.params;
   const [otpp, setOtp] = useState("");
   const [isOtpValid, setIsOtpValid] = useState(data.otp);
 
@@ -60,7 +60,7 @@ const OTPRessPassScreen = ({route, navigation }) => {
 
  const getOTP = async (email) =>{
   try {
-    const response = await fetch("http://localhost:5001/api/user/send-otp", {
+    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/user/send-otp`, {
     method: "POST",
     headers: {
         "Content-Type": "application/json",

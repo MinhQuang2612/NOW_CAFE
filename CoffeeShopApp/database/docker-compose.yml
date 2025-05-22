@@ -23,7 +23,7 @@ services:
       - MONGO_URI=mongodb+srv://minhquangyi:uLzta6al7EHdfli4@cluster0.bnk2j.mongodb.net/QuanLyQuanCafe
       - PORT=5001
       - EMAIL_USER=tktvuong040103@gmail.com
-      - EMAIL_PASS=tumgvyfdkwluqihz
+      - EMAIL_PASS=ocmixqahenzasmxz
     depends_on:
       - mongo
     networks:

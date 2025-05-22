@@ -47,7 +47,7 @@ const ResetPasswordScreen = ({ navigation }) => {
       return;
     }
   try {
-    const response = await fetch("http://localhost:5001/api/user/check-account", {
+    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/user/check-account`, {
     method: "POST",
     headers: {
         "Content-Type": "application/json",
@@ -70,9 +70,9 @@ const ResetPasswordScreen = ({ navigation }) => {
 }}
 const checkAccount = async () => {
   const kq = await handlecheckAccount();
-  console.log(kq);
+ 
   if (kq.success){
-    navigation.navigate("OTPRessPass", {data:kq,username});
+    navigation.navigate("OTPRessPass", {data:kq,username,email});
   } else {
     alert(kq.message);
   }

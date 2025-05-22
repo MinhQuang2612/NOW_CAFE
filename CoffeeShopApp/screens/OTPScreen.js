@@ -61,7 +61,7 @@ const OTPScreen = ({route, navigation }) => {
 
  const getOTP = async (email) =>{
   try {
-    const response = await fetch("http://localhost:5001/api/user/send-otp", {
+    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/user/send-otp`, {
     method: "POST",
     headers: {
         "Content-Type": "application/json",
@@ -84,7 +84,7 @@ const OTPScreen = ({route, navigation }) => {
 
 const createAccount = async () =>{
   try {
-    const response = await fetch("http://localhost:5001/api/user/create-account", {
+    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/user/create-account`, {
     method: "POST",
     headers: {
         "Content-Type": "application/json",

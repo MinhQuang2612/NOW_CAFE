@@ -62,7 +62,7 @@ const SignInScreen = ({ navigation }) => {
       console.log("Gửi request với:", { userName: username, passWord: password });
       // Retry 3 lần, delay 3-5s nếu lỗi mạng hoặc response không ok
       const response = await retryApiCall(() =>
-        fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/user/login`, {
+        fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: bodyData,

@@ -36,7 +36,7 @@ const ChanePasswordScreen = ({ route,navigation }) => {
 }
    const handleResetPass = async () =>{
   try {
-    const response = await fetch("http://localhost:5001/api/user/reset-password", {
+    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/user/reset-password`, {
     method: "POST",
     headers: {
         "Content-Type": "application/json",
