@@ -111,7 +111,7 @@ const LoginScreen = ({ navigation }) => {
   
 
   const [request, response, promptAsync] = Facebook.useAuthRequest({
-    clientId: "543702152074840",
+    clientId: "2775336932652829",
   });
 
   useEffect(() => {
