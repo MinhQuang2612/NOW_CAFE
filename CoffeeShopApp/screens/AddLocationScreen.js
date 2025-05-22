@@ -1,118 +1,4 @@
-// import React, { useState } from "react";
-// import { 
-//   View, 
-//   Text, 
-//   TextInput, 
-//   TouchableOpacity, 
-//   StyleSheet, 
-//   Switch 
-// } from "react-native";
-// import Footer from "../components/Footer";
-// import { Feather } from "@expo/vector-icons";
-
-// export default function AddDeliveryLocationScreen({ navigation }) {
-//   const [isDefault, setIsDefault] = useState(false);
-//   const [name, setName] = useState("");
-//   const [phone, setPhone] = useState("");
-//   const [address, setAddress] = useState("");
-
-//   return (
-//     <View style={styles.mainContainer}>
-//       {/* Thanh điều hướng */}
-//       <View style={styles.header}>
-//         <TouchableOpacity onPress={() => navigation.goBack()}>
-//           <Feather name="arrow-left" size={24} color="#000" />
-//         </TouchableOpacity>
-//         <Text style={styles.headerTitle}>New address</Text>
-//       </View>
-
-//       {/* Form nhập địa chỉ */}
-//       <View style={styles.formContainer}>
-//         <Text style={styles.label}>Address</Text>
-//         <View style={styles.inputContainer}>
-//           <TextInput style={styles.input} placeholder="Full name" value={name} onChangeText={setName} />
-//           <TextInput style={styles.input} placeholder="Phone number" keyboardType="phone-pad" value={phone} onChangeText={setPhone} />
-//           <TextInput style={styles.input} placeholder="Address" value={address} onChangeText={setAddress} />
-//         </View>
-
-//         {/* Chọn làm địa chỉ mặc định */}
-//         <View style={styles.switchContainer}>
-//           <Text style={styles.switchLabel}>Set as default address</Text>
-//           <Switch value={isDefault} onValueChange={setIsDefault} />
-//         </View>
-
-//         {/* Nút hoàn thành */}
-//         <TouchableOpacity style={styles.completeButton}>
-//           <Text style={styles.completeText}>HOÀN THÀNH</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {/* Footer */}
-//       <Footer selected="cart" navigation={navigation} />
-//     </View>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   mainContainer: {
-//     flex: 1,
-//     backgroundColor: "#F9E8D9",
-//     paddingHorizontal: 16,
-//     paddingTop: 20,
-//   },
-//   header: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     marginBottom: 20,
-//   },
-//   headerTitle: {
-//     fontSize: 18,
-//     fontWeight: "bold",
-//     marginLeft: 12,
-//   },
-//   formContainer: {
-//     backgroundColor: "#fff",
-//     padding: 16,
-//     borderRadius: 10,
-//   },
-//   label: {
-//     fontSize: 14,
-//     fontWeight: "bold",
-//     marginBottom: 8,
-//   },
-//   inputContainer: {
-//     marginBottom: 12,
-//   },
-//   input: {
-//     backgroundColor: "#fff",
-//     padding: 12,
-//     borderRadius: 6,
-//     marginBottom: 8,
-//     borderColor: "#E0C3A5",
-//     borderWidth: 1,
-//   },
-//   switchContainer: {
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//     alignItems: "center",
-//   },
-//   switchLabel: {
-//     fontSize: 14,
-//   },
-//   completeButton: {
-//     backgroundColor: "#E0C3A5",
-//     padding: 12,
-//     borderRadius: 10,
-//     alignItems: "center",
-//     marginTop: 12,
-//   },
-//   completeText: {
-//     fontSize: 16,
-//     fontWeight: "bold",
-//   },
-// });
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -127,36 +13,39 @@ import { Feather } from "@expo/vector-icons";
 import { useDispatch } from "react-redux";
 
 export default function AddDeliveryLocationScreen({ navigation, route }) {
-  const [isDefault, setIsDefault] = useState(false);
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
   const dispatch = useDispatch();
-  const { onSave } = route.params || {};
+  const { formData, setFormData, onSave } = route.params || {};
+
+  // Khởi tạo state từ formData truyền vào
+  const [name, setName] = useState(formData?.name || "");
+  const [phone, setPhone] = useState(formData?.phoneNumber || "");
+  const [address, setAddress] = useState(formData?.address || "");
+  const [isDefault, setIsDefault] = useState(false);
 
   // Hàm xử lý khi nhấn "Complete"
   const handleComplete = () => {
-    // Validation cơ bản
     if (!name.trim() || !phone.trim() || !address.trim()) {
       Alert.alert("Error", "Please fill in all fields (Full name, Phone number, Address).");
       return;
     }
 
-    // Định dạng địa chỉ mới
-    const newAddress = address; // Chỉ lấy địa chỉ vì BillDetail chỉ cần address
-    const userInfo = { name, phoneNumber: phone, address: newAddress };
+    // Cập nhật lại formData mới
+    const newData = {
+      ...formData,
+      name,
+      phoneNumber: phone,
+      address,
+    };
 
     // Gửi dữ liệu về BillDetailScreen
-    if (onSave) {
-      onSave(newAddress, isDefault);
-    }
+    if (setFormData) setFormData(newData);
+    if (onSave) onSave(newData);
 
     // Nếu chọn làm mặc định, cập nhật vào Redux store
     if (isDefault) {
-      dispatch({ type: "user/updateUserInfo", payload: userInfo });
+      dispatch({ type: "user/updateUserInfo", payload: newData });
     }
 
-    // Quay lại màn hình trước
     navigation.goBack();
   };
 
@@ -284,7 +173,7 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   completeButton: {
-    backgroundColor: "#D4A373", // Màu nâu nhạt giống hình
+    backgroundColor: "#D4A373",
     padding: 12,
     borderRadius: 10,
     alignItems: "center",

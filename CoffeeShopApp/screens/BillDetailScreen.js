@@ -43,6 +43,45 @@ const BillDetail = ({ navigation, route }) => {
     console.log("User state from Redux:", user);
   }, [user]);
 
+   const [formData, setFormData] = useState({
+      name: "",
+      firstName: "",
+      address: "",
+      phoneNumber: "",
+      email: "",
+      points: "",
+    });
+  
+    useEffect(() => {
+      if (user) {
+        fetchUserDetails(user.userId);
+      }
+    }, [user]);
+
+    const fetchUserDetails = async (userId) => {
+      try {
+        const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/user/${userId}`);
+        const data = await response.json();
+        console.log('data', data);
+        if (data.success) {
+          const { name, phoneNumber, address, points, email } = data.user;
+          const [firstName, ...rest] = name.split(" ");
+          setFormData({
+            name: rest.join(" ") || "",
+            firstName: firstName || "",
+            address: address || "",
+            phoneNumber: phoneNumber || "",
+            points: points || "",
+            email: email || "",
+          });
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy thông tin người dùng:", error);
+      }
+    };
+
+    console.log("Form data:", formData);
+
   // Kiểm tra kết nối mạng
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
@@ -217,11 +256,13 @@ const BillDetail = ({ navigation, route }) => {
   const toRad = (value) => (value * Math.PI) / 180;
 
   const handleEditAddress = () => {
-    navigation.navigate("AddLocation", {
-      currentAddress: userAddress,
-      onComplete: (newAddress) => {
-        setUserAddress(newAddress);
-        navigation.setParams({ newAddress });
+    navigation.navigate("AddLocation", {formData,setFormData,
+      // currentAddress: userAddress,
+      // onComplete: (newAddress) => {
+      //   setUserAddress(newAddress);
+      //   navigation.setParams({ newAddress });
+       onSave: (newData) => {
+      setFormData(newData);
       },
     });
   };
@@ -246,14 +287,127 @@ const BillDetail = ({ navigation, route }) => {
 
   const paymentDetails = calculatePaymentDetails();
 
+  console.log("Chi tiết thanh toán:", paymentDetails);
+
+const handlePlaceOrder = async () => {
+  if (!paymentSelected && paymentSelected !== 0) {
+    Alert.alert("Lỗi", "Vui lòng chọn phương thức thanh toán");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    if (isUsingDefaultCoords) {
+      const shouldContinue = await new Promise((resolve) => {
+        Alert.alert(
+          "Xác nhận",
+          "Hệ thống đang sử dụng vị trí ước tính. Bạn có muốn tiếp tục đặt hàng không?",
+          [
+            { text: "Hủy", style: "cancel", onPress: () => resolve(false) },
+            { text: "Tiếp tục", onPress: () => resolve(true) },
+          ]
+        );
+      });
+
+      if (!shouldContinue) {
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Kiểm tra dữ liệu đầu vào
+    if (!selectedItems || selectedItems.length === 0) {
+      Alert.alert("Lỗi", "Giỏ hàng của bạn trống. Vui lòng thêm sản phẩm để tiếp tục.");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.address || !formData.name || !formData.phoneNumber) {
+      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ địa chỉ, tên và số điện thoại.");
+      setLoading(false);
+      return;
+    }
+
+    // Tạo mã hóa đơn và chi tiết hóa đơn
+    const date = new Date();
+    const timestamp = date.getTime();
+    const hoadon_id = `HD${timestamp}`;
+    const chitiethoadon_id = `CTHD${timestamp}`;
+
+    // Tính tổng tiền
+    const tongTien = selectedItems.reduce(
+      (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
+      0
+    );
+
+    // Tạo đơn hàng mới đúng chuẩn backend
+    const newOrder = {
+      hoadon_id,
+      user: {
+        user_id: user.userId || `guest_${timestamp}`,
+        name: formData.name,
+        phoneNumber: formData.phoneNumber,
+        address: formData.address,
+      },
+      ChiTietHoaDon: {
+        chitiethoadon_id,
+        SanPham: selectedItems.map(item => ({
+          productId: item._id || item.id || item.sanpham_id || `SP${Math.floor(1000 + Math.random() * 9000)}`,
+          name: item.name || "Unknown Product",
+          quantity: parseInt(item.quantity) || 1,
+          price: parseFloat(item.price) || 0,
+          image: item.image || "https://picsum.photos/200/300",
+        })),
+        dateCreated: date.toISOString(),
+      },
+      tongTien,
+      paymentMethod: paymentSelected === 0 ? "COD" : "Credit Card",
+      status: "Order pleased",
+    };
+
+    // Gửi đơn hàng lên server
+    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/orders`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+  },
+  body: JSON.stringify(newOrder),
+});
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.message || "Đặt hàng thất bại");
+    }
+
+    dispatch(clearCart());
+
+    Alert.alert(
+      "Đặt hàng thành công",
+      "Cảm ơn bạn đã đặt hàng. Mã đơn hàng của bạn là: " + newOrder.hoadon_id,
+      [{ text: "OK", onPress: () => navigation.navigate("Home") }]
+    );
+  } catch (error) {
+    console.error("Lỗi khi đặt hàng:", error);
+    if (error.message.includes("Network request failed")) {
+      Alert.alert("Lỗi kết nối", "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại.");
+    } else {
+      Alert.alert(
+        "Lỗi đặt hàng",
+        "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại sau.\n\n" +
+        "Chi tiết lỗi: " + error.message
+      );
+    }
+  } finally {
+    setLoading(false);
+  }
+};
+
   // const handlePlaceOrder = async () => {
   //   if (!paymentSelected && paymentSelected !== 0) {
   //     Alert.alert("Lỗi", "Vui lòng chọn phương thức thanh toán");
-  //     return;
-  //   }
-  
-  //   if (!isConnected) {
-  //     Alert.alert("Lỗi", "Không có kết nối mạng. Vui lòng kiểm tra và thử lại.");
   //     return;
   //   }
   
@@ -279,12 +433,21 @@ const BillDetail = ({ navigation, route }) => {
   //     }
   
   //     let userIdForOrder;
+  //     let userData;
   
+  //     // Kiểm tra user từ Redux
   //     if (user && user.user_id) {
-  //       userIdForOrder = user.user_id; // Sử dụng trực tiếp user_id
+  //       userIdForOrder = user.user_id;
+  //       userData = user; // Dữ liệu người dùng từ Redux
   //     } else {
   //       // Tạo ID cho khách
   //       userIdForOrder = "guest_" + Date.now();
+  //       userData = {
+  //         user_id: userIdForOrder,
+  //         name: "Khách",
+  //         phoneNumber: "0123456789",
+  //         address: userAddress || "Danang, Vietnam",
+  //       };
   //     }
   
   //     if (!selectedItems || selectedItems.length === 0) {
@@ -302,10 +465,15 @@ const BillDetail = ({ navigation, route }) => {
   //     // Tạo IDs cho đơn hàng
   //     const orderId = `HD${Math.floor(1000 + Math.random() * 9000)}`;
   //     const orderDetailId = `CTHD${Math.floor(1000 + Math.random() * 9000)}`;
-      
+  
   //     const newOrder = {
   //       hoadon_id: orderId,
-  //       user: userIdForOrder, // Chỉ gửi string ID
+  //       user: {
+  //         user_id: userIdForOrder,
+  //         name: userData.name || "Khách",
+  //         phoneNumber: userData.phoneNumber || "0123456789",
+  //         address: userAddress || userData.address || "Danang, Vietnam",
+  //       },
   //       ChiTietHoaDon: {
   //         chitiethoadon_id: orderDetailId,
   //         SanPham: selectedItems.map(item => ({
@@ -313,12 +481,13 @@ const BillDetail = ({ navigation, route }) => {
   //           name: item.name || "Unknown Product",
   //           quantity: parseInt(item.quantity) || 1,
   //           price: parseFloat(item.price) || 0,
+  //           image: item.image || "https://picsum.photos/200/300", // Thêm trường image nếu có
   //         })),
   //         dateCreated: new Date().toISOString(),
   //       },
   //       tongTien: parseFloat(paymentDetails.total) * 1000,
   //       paymentMethod: paymentSelected === 0 ? "Cash on Delivery" : "Credit Card",
-  //       status: "pending"
+  //       status: "pending",
   //     };
   
   //     console.log("Dữ liệu đơn hàng gửi lên:", JSON.stringify(newOrder, null, 2));
@@ -328,7 +497,7 @@ const BillDetail = ({ navigation, route }) => {
   
   //     while (retryCount < maxRetries) {
   //       try {
-  //         const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/orders`, {
+  //         const response = await fetch('http://172.20.10.7:5001/api/orders', {
   //           method: "POST",
   //           headers: {
   //             "Content-Type": "application/json",
@@ -392,163 +561,6 @@ const BillDetail = ({ navigation, route }) => {
   //     setLoading(false);
   //   }
   // };
-
-  const handlePlaceOrder = async () => {
-    if (!paymentSelected && paymentSelected !== 0) {
-      Alert.alert("Lỗi", "Vui lòng chọn phương thức thanh toán");
-      return;
-    }
-  
-    setLoading(true);
-  
-    try {
-      if (isUsingDefaultCoords) {
-        const shouldContinue = await new Promise((resolve) => {
-          Alert.alert(
-            "Xác nhận",
-            "Hệ thống đang sử dụng vị trí ước tính. Bạn có muốn tiếp tục đặt hàng không?",
-            [
-              { text: "Hủy", style: "cancel", onPress: () => resolve(false) },
-              { text: "Tiếp tục", onPress: () => resolve(true) },
-            ]
-          );
-        });
-  
-        if (!shouldContinue) {
-          setLoading(false);
-          return;
-        }
-      }
-  
-      let userIdForOrder;
-      let userData;
-  
-      // Kiểm tra user từ Redux
-      if (user && user.user_id) {
-        userIdForOrder = user.user_id;
-        userData = user; // Dữ liệu người dùng từ Redux
-      } else {
-        // Tạo ID cho khách
-        userIdForOrder = "guest_" + Date.now();
-        userData = {
-          user_id: userIdForOrder,
-          name: "Khách",
-          phoneNumber: "0123456789",
-          address: userAddress || "Danang, Vietnam",
-        };
-      }
-  
-      if (!selectedItems || selectedItems.length === 0) {
-        Alert.alert("Lỗi", "Giỏ hàng của bạn trống. Vui lòng thêm sản phẩm để tiếp tục.");
-        setLoading(false);
-        return;
-      }
-  
-      if (!userAddress) {
-        Alert.alert("Lỗi", "Địa chỉ giao hàng không hợp lệ. Vui lòng nhập địa chỉ.");
-        setLoading(false);
-        return;
-      }
-  
-      // Tạo IDs cho đơn hàng
-      const orderId = `HD${Math.floor(1000 + Math.random() * 9000)}`;
-      const orderDetailId = `CTHD${Math.floor(1000 + Math.random() * 9000)}`;
-  
-      const newOrder = {
-        hoadon_id: orderId,
-        user: {
-          user_id: userIdForOrder,
-          name: userData.name || "Khách",
-          phoneNumber: userData.phoneNumber || "0123456789",
-          address: userAddress || userData.address || "Danang, Vietnam",
-        },
-        ChiTietHoaDon: {
-          chitiethoadon_id: orderDetailId,
-          SanPham: selectedItems.map(item => ({
-            productId: item._id || item.id || item.sanpham_id || `SP${Math.floor(1000 + Math.random() * 9000)}`,
-            name: item.name || "Unknown Product",
-            quantity: parseInt(item.quantity) || 1,
-            price: parseFloat(item.price) || 0,
-            image: item.image || "https://picsum.photos/200/300", // Thêm trường image nếu có
-          })),
-          dateCreated: new Date().toISOString(),
-        },
-        tongTien: parseFloat(paymentDetails.total) * 1000,
-        paymentMethod: paymentSelected === 0 ? "Cash on Delivery" : "Credit Card",
-        status: "pending",
-      };
-  
-      console.log("Dữ liệu đơn hàng gửi lên:", JSON.stringify(newOrder, null, 2));
-  
-      let retryCount = 0;
-      const maxRetries = 3;
-  
-      while (retryCount < maxRetries) {
-        try {
-          const response = await fetch('http://172.20.10.7:5001/api/orders', {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Accept": "application/json",
-            },
-            body: JSON.stringify(newOrder),
-          });
-  
-          console.log("Mã trạng thái phản hồi:", response.status);
-  
-          const responseText = await response.text();
-          console.log("Nội dung phản hồi:", responseText);
-  
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}, Response: ${responseText}`);
-          }
-  
-          let result;
-          try {
-            result = JSON.parse(responseText);
-          } catch (e) {
-            console.log("Phản hồi không phải JSON hợp lệ, nhưng yêu cầu thành công");
-            result = { success: true };
-          }
-  
-          console.log("Đặt hàng thành công:", result);
-  
-          dispatch(clearCart());
-  
-          Alert.alert(
-            "Đặt hàng thành công",
-            "Cảm ơn bạn đã đặt hàng. Mã đơn hàng của bạn là: " + newOrder.hoadon_id,
-            [{ text: "OK", onPress: () => navigation.navigate("Home") }]
-          );
-  
-          break;
-        } catch (error) {
-          console.error(`Lần thử ${retryCount + 1}/${maxRetries} thất bại:`, error);
-          retryCount++;
-  
-          if (retryCount >= maxRetries) {
-            throw error;
-          }
-  
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-    } catch (error) {
-      console.error("Lỗi khi đặt hàng:", error);
-  
-      if (error.message.includes("Network request failed")) {
-        Alert.alert("Lỗi kết nối", "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại.");
-      } else {
-        Alert.alert(
-          "Lỗi đặt hàng",
-          "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại sau.\n\n" +
-          "Chi tiết lỗi: " + error.message
-        );
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const MapComponent = ({ shopCoords, userCoords }) => {
     if (!userCoords) {
@@ -625,18 +637,23 @@ const BillDetail = ({ navigation, route }) => {
       />
     );
   };
+console.log("User coordinates:", formData?.address);
 
-  const Address = ({ user }) => (
-    <TouchableOpacity onPress={handleEditAddress} style={styles.addressContainer}>
-      <Ionicons name="location" size={40} color="#FB452D" />
-      <View style={styles.addressContent}>
-        <Text style={styles.nameText}>{user?.name || "Nguyen Thi Nu Y"}</Text>
-        <Text style={styles.phoneText}>(+84) {user?.phoneNumber || "0123456791"}</Text>
-        <Text style={styles.addressText}>{userAddress || "No address"}</Text>
-      </View>
-      <AntDesign name="edit" size={20} color="#333" />
-    </TouchableOpacity>
-  );
+  const Address = ({ formData,setFormData }) => (
+  <TouchableOpacity onPress={handleEditAddress} style={styles.addressContainer}>
+    <Ionicons name="location" size={40} color="#FB452D" />
+    <View style={styles.addressContent}>
+      <Text style={styles.nameText}>{formData?.name}</Text>
+      <Text style={styles.phoneText}>
+        (+84) {formData?.phoneNumber }
+      </Text>
+      <Text style={styles.addressText}>
+        {formData?.address}
+      </Text>
+    </View>
+    <AntDesign name="edit" size={20} color="#333" />
+  </TouchableOpacity>
+);
 
   const Item = ({ item }) => (
     <View style={{ marginTop: 10 }}>
@@ -710,7 +727,7 @@ const BillDetail = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Address user={user} />
+        <Address formData={formData} setFormData={setFormData} />
         <View style={styles.mapContainer}>
           {isMapLoading || !userCoords ? (
             <View style={[styles.map, styles.mapLoading]}>
