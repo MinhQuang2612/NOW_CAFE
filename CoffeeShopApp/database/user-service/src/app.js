@@ -16,7 +16,7 @@ mongoose.connect(mongoUri)
   .catch((err) => console.error('❌ MongoDB Connection Error:', err));
 
 // Routes
-app.use('/api/user', userRoutes);
+app.use('/api', userRoutes);
 
 // Start Server
 app.listen(port, () => console.log(`✅ User Service running on port ${port}`)); 
