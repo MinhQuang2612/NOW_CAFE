@@ -5,6 +5,8 @@ import { useNavigation } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
 import { setForceBlur } from "../redux/useSlice";
 import { setUser } from "../redux/userSlice"; // Để đảm bảo có thể sử dụng setUser
+import { rateLimit } from '../utils/rateLimiter';
+import { retryApiCall } from '../utils/retryApiCall';
 
 const DEFAULT_AVATAR = "https://i.pravatar.cc/150";
 const { width } = Dimensions.get("window");
@@ -29,21 +31,25 @@ export default function Navbar() {
 
   // Hàm giả lập gọi API để tìm thông tin người dùng theo userId
   const fetchUserById = async (userId) => {
+    if (!rateLimit('user-service', 10, 60 * 1000)) {
+      alert('Bạn gọi API user quá nhanh, vui lòng thử lại sau!');
+      console.warn('Rate limit client: Blocked user-service API call');
+      return;
+    }
     try {
-      console.log("Gọi API với userId:", userId); // Log khi gọi API
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/user/${userId}`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
+      const response = await retryApiCall(() => fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/user/${userId}`), 3, 3000, 5000);
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
       const data = await response.json();
-      console.log("Dữ liệu trả về từ API:", data); // Log dữ liệu từ API
+      console.log('Phản hồi từ user-service:', data);
       if (data.success) {
         setUserDetails(data.user);
       } else {
         console.log("Không tìm thấy thông tin người dùng từ API");
       }
+      return data;
     } catch (error) {
-      console.error("Lỗi khi lấy thông tin người dùng:", error);
+      console.error('❌ Lỗi gọi API user-service:', error.message);
+      alert('Có lỗi khi lấy thông tin người dùng, vui lòng thử lại sau.');
     }
   };
 

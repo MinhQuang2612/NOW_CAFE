@@ -10,6 +10,8 @@ import { makeRedirectUri } from "expo-auth-session";
 import * as Google from "expo-auth-session/providers/google";
 import { useDispatch } from "react-redux"; // Import useDispatch
 import { setUser } from "../redux/userSlice"; // Import setUser action
+import { rateLimit } from '../utils/rateLimiter';
+import { retryApiCall } from '../utils/retryApiCall';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -139,44 +141,46 @@ const LoginScreen = ({ navigation }) => {
       if (!data) {
         throw new Error("Không tìm thấy thông tin tài khoản!");
       }
+      // Rate limiter client: Giới hạn 5 lần/phút cho user-service
+      if (!rateLimit('user-service', 5, 60 * 1000)) {
+        Alert.alert('Bạn gọi API quá nhanh, vui lòng thử lại sau!');
+        console.warn('Rate limit client: Blocked Facebook login API call');
+        return;
+      }
       const bodyData = JSON.stringify({
         email: data.email,
         username: data.displayName,
         uid: uid,
       });
       console.log("Gửi dữ liệu đến API:", bodyData);
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/facebook`, {
+      // Retry 3 lần, delay 3-5s nếu lỗi mạng
+      const response = await retryApiCall(() => fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/facebook`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
         },
         body: bodyData,
-      });
-  
+      }), 3, 3000, 5000);
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
-  
       const result = await response.json();
       console.log("Phản hồi từ API:", result);
-  
       if (result.success) {
-        // Lưu userId từ API vào Redux
         dispatch(setUser({
-          userId: result.userId, // Lưu userId từ backend (userID0001)
+          userId: result.userId,
           email: data.email,
           name: data.displayName,
         }));
         console.log("✅ User data saved to Redux with userId:", result.userId);
-  
         Alert.alert("Thành công", "Đăng nhập thành công!");
         navigation.navigate("Home", { user: result.user });
       } else {
         Alert.alert("Thất bại", result.message || "Đăng nhập thất bại!");
       }
     } catch (error) {
-      console.error("❌ Lỗi đăng nhập:", error.message);
+      console.error("❌ Lỗi đăng nhập Facebook:", error.message);
       Alert.alert("Lỗi", "Đã có lỗi xảy ra, vui lòng thử lại sau.");
     }
   };

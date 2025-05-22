@@ -17,6 +17,8 @@ import {
 import { Feather } from "@expo/vector-icons"; // Import Feather icons
 import { useDispatch } from "react-redux"; // Import useDispatch
 import { setUser } from "../redux/userSlice"; // Import setUser
+import { rateLimit } from '../utils/rateLimiter';
+import { retryApiCall } from '../utils/retryApiCall';
 
 const { width, height } = Dimensions.get("window");
 const scale = Math.min(width, height) / 375;
@@ -50,28 +52,26 @@ const SignInScreen = ({ navigation }) => {
       Alert.alert("Lỗi", "Vui lòng nhập tên đăng nhập và mật khẩu!");
       return;
     }
-
+    if (!rateLimit('user-service', 10, 60 * 1000)) {
+      console.log('Bạn đăng nhập quá nhanh, vui lòng thử lại sau!');
+      console.log('Rate limit client: Blocked login API call');
+      return;
+    }
     try {
       const bodyData = JSON.stringify({ userName: username, passWord: password });
-      console.log("Gửi request với:", { userName: username, passWord: password }); // Debug
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/login`, {
-      //const response = await fetch("http://localhost:5001/api/user/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
-        body: bodyData,
-      });
-  
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.log("Phản hồi lỗi:", errorText);
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-  
+      console.log("Gửi request với:", { userName: username, passWord: password });
+      // Retry 3 lần, delay 3-5s nếu lỗi mạng hoặc response không ok
+      const response = await retryApiCall(() =>
+        fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/user/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: bodyData,
+        }).then(res => {
+          if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+          return res;
+        })
+      );
       const data = await response.json();
-  
       if (data.success) {
         Alert.alert("Thành công", "Đăng nhập thành công!");
         console.log("🚀 Đăng nhập thành công:", data.user);
@@ -81,8 +81,8 @@ const SignInScreen = ({ navigation }) => {
         Alert.alert("Thất bại", data.message || "Tên đăng nhập hoặc mật khẩu không đúng!");
       }
     } catch (error) {
-      console.error("❌ Lỗi đăng nhập:", error);
-      Alert.alert("Lỗi", "Đã có lỗi xảy ra, vui lòng thử lại sau.");
+      console.error('❌ Lỗi đăng nhập:', error);
+      Alert.alert('Lỗi đăng nhập', error.message);
     }
   };
 

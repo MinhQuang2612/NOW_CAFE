@@ -7,6 +7,8 @@ import { useRoute } from "@react-navigation/native";
 import useAddToCart from "../hooks/useAddToCart";
 import { useDispatch, useSelector } from "react-redux";
 import { toggleFavorite } from "../redux/favoritesSlice";
+import { rateLimit } from '../utils/rateLimiter';
+import { retryApiCall } from '../utils/retryApiCall';
 
 const { width } = Dimensions.get("window");
 
@@ -49,6 +51,30 @@ export default function ProductDetail() {
       ))}
     </View>
   );
+
+  const fetchProductDetail = async (productId) => {
+    if (!rateLimit('product-service', 10, 60 * 1000)) {
+      alert('Bạn gọi API sản phẩm quá nhanh, vui lòng thử lại sau!');
+      console.warn('Rate limit client: Blocked product-service API call');
+      return;
+    }
+    try {
+      const response = await retryApiCall(() =>
+        fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/products/${productId}`)
+          .then(res => {
+            if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+            return res;
+          })
+      );
+      const data = await response.json();
+      console.log('Phản hồi từ product-service:', data);
+      // ... xử lý data
+      return data;
+    } catch (error) {
+      console.error('❌ Lỗi lấy chi tiết sản phẩm:', error);
+      alert('Lỗi lấy chi tiết sản phẩm: ' + error.message);
+    }
+  };
 
   return (
     <View style={styles.container}>

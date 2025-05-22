@@ -23,6 +23,8 @@ import Navbar from "../components/Navbar";
 import { AntDesign } from "@expo/vector-icons";
 import SearchBar from "../components/SearchBar";
 import Checkbox from "expo-checkbox";
+import { rateLimit } from '../utils/rateLimiter';
+import { retryApiCall } from '../utils/retryApiCall';
 
 export default function CartScreen({ navigation }) {
   const cartItems = useSelector((state) => state.cart.cartItems);
@@ -143,6 +145,30 @@ export default function CartScreen({ navigation }) {
   const handleCheckAll = (value) => {
     setCheckAll(value);
     setDataCheck((prev) => prev.map((check) => ({ ...check, checked: value })));
+  };
+
+  const fetchCart = async (userId) => {
+    if (!rateLimit('cart-service', 10, 60 * 1000)) {
+      alert('Bạn gọi API giỏ hàng quá nhanh, vui lòng thử lại sau!');
+      console.warn('Rate limit client: Blocked cart-service API call');
+      return;
+    }
+    try {
+      const response = await retryApiCall(() =>
+        fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/cart/${userId}`)
+          .then(res => {
+            if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+            return res;
+          })
+      );
+      const data = await response.json();
+      console.log('Phản hồi từ cart-service:', data);
+      // ... xử lý data
+      return data;
+    } catch (error) {
+      console.error('❌ Lỗi lấy giỏ hàng:', error);
+      alert('Lỗi lấy giỏ hàng: ' + error.message);
+    }
   };
 
   return (
