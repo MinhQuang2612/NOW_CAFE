@@ -31,7 +31,7 @@ const RecentlyOtherScreen = ({ route }) => {
 
   const fetchOrders = async (userId) => {
     try {
-      const response = await fetch (`${process.env.EXPO_PUBLIC_API_URL}/api/orders/${userId}`)  ;
+      const response = await fetch (`${process.env.EXPO_PUBLIC_API_URL}/api/orders/user/${userId}`)  ;
       const data = await response.json();
 
       if (data.success) {
@@ -45,6 +45,9 @@ const RecentlyOtherScreen = ({ route }) => {
       setLoading(false);
     }
   };
+
+  console.log("orders =", orders);
+
 
   // Lọc đơn hàng theo trạng thái
   const recentOrders = orders.filter((order) => order.status !== "Completed");
